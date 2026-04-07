@@ -88,10 +88,19 @@ class TransactionSimulator {
 
         const cluster = [];
         for (let i = 0; i < count; i += 1) {
+            let receiverId;
+            if (i === 0) {
+                receiverId = receiverPool[0];
+            } else if (i === 1) {
+                receiverId = receiverPool[1];
+            } else {
+                receiverId = this.#pick(receiverPool);
+            }
+
             cluster.push({
                 transaction_id: randomUUID(),
                 sender_account_id: sender,
-                receiver_account_id: this.#pick(receiverPool),
+                receiver_account_id: receiverId,
                 amount: this.#randInt(1000, 9999),
                 currency: "USD",
                 timestamp: new Date(start + this.#randInt(0, 60 * 60 * 1000)).toISOString(),
@@ -158,7 +167,7 @@ class TransactionSimulator {
     }
 
     #sampleAmount() {
-        if (Math.random() < 0.72) {
+        if (Math.random() < 0.8) {
             return this.#randFloat(10, 4999);
         }
         return this.#randFloat(5000, 75000);
