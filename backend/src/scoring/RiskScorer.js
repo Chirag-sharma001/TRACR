@@ -64,8 +64,6 @@ class RiskScorer {
         const saved = await this.alertModel.create(alertDoc);
         const payload = saved.toObject ? saved.toObject() : saved;
 
-        this.emitter.emit("alert:new", payload);
-
         return payload;
     }
 

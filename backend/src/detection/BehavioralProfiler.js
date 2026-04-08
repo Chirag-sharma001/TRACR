@@ -148,7 +148,7 @@ class BehavioralProfiler {
         const isNewCounterparty = !knownCounterparties.has(tx.receiver_account_id);
         const isHighValue = Number(tx.amount_usd) > amountThreshold;
 
-        if (isHighValue && isNewCounterparty) {
+        if (amountP90 > 0 && isHighValue && isNewCounterparty) {
             anomalies.push({
                 anomalyType: "HIGH_VALUE_NEW_COUNTERPARTY",
                 observedValue: Number(tx.amount_usd),

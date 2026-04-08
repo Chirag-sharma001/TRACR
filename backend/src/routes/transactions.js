@@ -11,7 +11,8 @@ function createTransactionRoutes({
 } = {}) {
     const router = express.Router();
 
-    router.post("/ingest", async (req, res) => {
+    const ingestMiddlewares = jwtMiddleware ? [jwtMiddleware] : [];
+    router.post("/ingest", ...ingestMiddlewares, async (req, res) => {
         const validation = validator.validate(req.body);
         if (!validation.valid) {
             return res.status(400).json({ error: "validation_failed", details: validation.errors });
