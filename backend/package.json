@@ -5,7 +5,8 @@
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "trace:run": "node src/simulator/TraceRun.js"
   },
   "keywords": [],
   "author": "",
