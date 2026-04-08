@@ -60,12 +60,24 @@ class DetectionOrchestrator {
             }
         );
 
-        const account = await this.accountModel.findOne({ account_id: tx.sender_account_id }).lean();
+        let account = await this.accountModel.findOne({ account_id: tx.sender_account_id }).lean();
+        if (this.behavioralProfiler && typeof this.behavioralProfiler.updateBaseline === "function") {
+            try {
+                account = await this.behavioralProfiler.updateBaseline(tx.sender_account_id);
+            } catch (error) {
+                this.logger.warn("baseline_update_failed", {
+                    account_id: tx.sender_account_id,
+                    reason: error.message,
+                });
+            }
+        }
 
-        const cycleMaxLength = this.#getConfigNumber("cycle_max_length", 6);
+        const cycleMaxLength = this.#getConfigNumber("cycle_max_length", 8);
         const cycleWindowHours = this.#getConfigNumber("cycle_time_window_hours", 72);
         const rollingWindowHours = this.#getConfigNumber("rolling_window_hours", 24);
         const ctrThreshold = this.#getConfigNumber("ctr_threshold", 10000);
+        const smurfingTxCountThreshold = this.#getConfigNumber("smurfing_tx_count_threshold", 3);
+        const smurfingBelowThresholdRatioMin = this.#getConfigNumber("smurfing_below_threshold_ratio_min", 0.7);
 
         const [cycles, smurfingSignal, behavioralSignal] = await Promise.all([
             Promise.resolve(
@@ -87,6 +99,8 @@ class DetectionOrchestrator {
                 this.smurfingDetector.evaluateSmurfing(tx.sender_account_id, tx, {
                     windowHours: rollingWindowHours,
                     ctrThreshold,
+                    minTxCount: smurfingTxCountThreshold,
+                    minBelowThresholdRatio: smurfingBelowThresholdRatioMin,
                 })
             ),
             this.behavioralProfiler.scoreAnomaly(

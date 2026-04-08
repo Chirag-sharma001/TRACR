@@ -1,5 +1,7 @@
 const DEFAULT_MAX_LENGTH = 6;
 const DEFAULT_WINDOW_HOURS = 72;
+const DEFAULT_RELAXED_WINDOW_HOURS = 336;
+const DEFAULT_DETECTION_TIME_BUDGET_MS = 1500;
 
 const DEFAULT_FATF_HIGH_RISK_JURISDICTIONS = [
     "IR",
@@ -20,10 +22,14 @@ class CycleDetector {
 
     detectCycles(graph, newEdge, maxLength = DEFAULT_MAX_LENGTH, timeWindowHours = DEFAULT_WINDOW_HOURS) {
         const startTime = Date.now();
-        const maxMs = 500;
+        const maxMs = this.#resolveTimeBudget(maxLength);
 
-        const resolvedMaxLength = Number(maxLength) || DEFAULT_MAX_LENGTH;
-        const resolvedWindowHours = Number(timeWindowHours) || DEFAULT_WINDOW_HOURS;
+        const resolvedMaxLength = Math.max(2, Number(maxLength) || DEFAULT_MAX_LENGTH);
+        const resolvedWindowHours = Math.max(1, Number(timeWindowHours) || DEFAULT_WINDOW_HOURS);
+        const relaxedWindowHours = Math.max(
+            resolvedWindowHours,
+            this.#getConfigNumber("cycle_relaxed_time_window_hours", Math.max(DEFAULT_RELAXED_WINDOW_HOURS, resolvedWindowHours * 2))
+        );
 
         const source = newEdge.from;
         const target = newEdge.to;
@@ -41,12 +47,16 @@ class CycleDetector {
         ];
 
         const cycles = [];
+        const cycleKeys = new Set();
+        let timedOut = false;
 
         while (stack.length > 0) {
             if (Date.now() - startTime > maxMs) {
+                timedOut = true;
                 this.logger.warn("cycle_detection_timeout", {
                     txId: newEdge.txId,
                     elapsed_ms: Date.now() - startTime,
+                    max_ms: maxMs,
                 });
                 break;
             }
@@ -72,13 +82,26 @@ class CycleDetector {
                             },
                         ];
 
-                        if (!this.allWithinTimeWindow(cycleEdges, resolvedWindowHours)) {
+                        const inStrictWindow = this.allWithinTimeWindow(cycleEdges, resolvedWindowHours);
+                        const inRelaxedWindow = !inStrictWindow && this.allWithinTimeWindow(cycleEdges, relaxedWindowHours);
+
+                        if (!(inStrictWindow || inRelaxedWindow)) {
                             continue;
                         }
 
                         const accountIds = this.#extractAccountIds(cycleEdges);
                         const fatfFlag = this.anyFATFJurisdiction(accountIds, graph, cycleEdges);
-                        const score = this.computeCycleScore(cycleEdges, fatfFlag);
+                        const baseScore = this.computeCycleScore(cycleEdges, fatfFlag);
+                        const isRelaxed = !inStrictWindow;
+                        const score = isRelaxed ? Math.max(15, baseScore * 0.65) : baseScore;
+
+                        const cycleKey = cycleEdges
+                            .map((cEdge) => `${cEdge.from}->${cEdge.to}:${cEdge.txId || "NO_TX"}`)
+                            .join("|");
+                        if (cycleKeys.has(cycleKey)) {
+                            continue;
+                        }
+                        cycleKeys.add(cycleKey);
 
                         cycles.push({
                             pattern_type: "CIRCULAR_TRADING",
@@ -93,6 +116,8 @@ class CycleDetector {
                             cycle_length: cycleEdges.length,
                             cycle_score: score,
                             fatf_flag: fatfFlag,
+                            window_type: isRelaxed ? "RELAXED" : "STRICT",
+                            relaxed_window_used: isRelaxed,
                             detected_at: new Date().toISOString(),
                         });
                         continue;
@@ -116,6 +141,14 @@ class CycleDetector {
                 }
             }
         }
+
+        if (timedOut) {
+            for (const cycle of cycles) {
+                cycle.incomplete_search = true;
+            }
+        }
+
+        cycles.sort((a, b) => Number(b.cycle_score || 0) - Number(a.cycle_score || 0));
 
         return cycles;
     }
@@ -199,6 +232,22 @@ class CycleDetector {
             return null;
         }
         return this.thresholdConfig.get(key);
+    }
+
+    #getConfigNumber(key, fallback) {
+        const configured = this.#getConfigValue(key);
+        if (configured === null || configured === undefined || configured === "") {
+            return fallback;
+        }
+
+        const value = Number(configured);
+        return Number.isFinite(value) ? value : fallback;
+    }
+
+    #resolveTimeBudget(maxLength) {
+        const configured = this.#getConfigNumber("cycle_detection_time_budget_ms", DEFAULT_DETECTION_TIME_BUDGET_MS);
+        const adaptiveBonus = Math.max(0, (Number(maxLength) || DEFAULT_MAX_LENGTH) - DEFAULT_MAX_LENGTH) * 120;
+        return Math.max(250, configured + adaptiveBonus);
     }
 }
 

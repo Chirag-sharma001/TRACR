@@ -132,15 +132,28 @@ class BehavioralProfiler {
         const historyDays = Number(baseline.history_days || 0);
 
         const amountP90 = Number(baseline.amount_p90 || 0);
+        const amountMean = Number(baseline.amount_mean || 0);
+        const amountStddev = Number(baseline.amount_stddev || 0);
         const knownCounterparties = new Set(baseline.known_counterparties || []);
 
         const anomalies = [];
 
-        if (Number(tx.amount_usd) > amountP90 && !knownCounterparties.has(tx.receiver_account_id)) {
+        const amountThreshold = this.#resolveHighValueThreshold({
+            amountP90,
+            amountMean,
+            amountStddev,
+            historyDays,
+        });
+
+        const isNewCounterparty = !knownCounterparties.has(tx.receiver_account_id);
+        const isHighValue = Number(tx.amount_usd) > amountThreshold;
+
+        if (isHighValue && isNewCounterparty) {
             anomalies.push({
                 anomalyType: "HIGH_VALUE_NEW_COUNTERPARTY",
                 observedValue: Number(tx.amount_usd),
-                baselineP90: amountP90,
+                baselineThreshold: amountThreshold,
+                severity: this.#clamp(Number(tx.amount_usd) / Math.max(1, amountThreshold), 1, 2.5) * 30,
             });
         }
 
@@ -163,6 +176,16 @@ class BehavioralProfiler {
                 baselineMean: mean,
                 baselineStddev: safeStddev,
                 deviationSigma: z,
+                severity: this.#clamp(z, 3, 8) * 12,
+            });
+        } else if (z > 2.3) {
+            anomalies.push({
+                anomalyType: "FREQUENCY_ELEVATION",
+                observedValue: frequency24h,
+                baselineMean: mean,
+                baselineStddev: safeStddev,
+                deviationSigma: z,
+                severity: this.#clamp(z, 2.3, 3) * 20,
             });
         }
 
@@ -175,6 +198,23 @@ class BehavioralProfiler {
             anomalies,
             low_confidence: historyDays < 30,
         };
+    }
+
+    #resolveHighValueThreshold({ amountP90, amountMean, amountStddev, historyDays }) {
+        if (amountP90 > 0) {
+            return amountP90;
+        }
+
+        if (historyDays >= 14 && amountMean > 0) {
+            const derived = amountMean + Math.max(0, amountStddev) * 2;
+            return derived > 0 ? derived : Number.POSITIVE_INFINITY;
+        }
+
+        return Number.POSITIVE_INFINITY;
+    }
+
+    #clamp(value, min, max) {
+        return Math.max(min, Math.min(max, Number(value) || 0));
     }
 
     async #countLast24Hours(accountId, timestamp) {

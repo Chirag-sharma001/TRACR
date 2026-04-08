@@ -30,11 +30,32 @@ const DEFAULT_CONFIGS = [
         description: "Maximum cycle duration window",
     },
     {
+        config_key: "cycle_relaxed_time_window_hours",
+        value: 336,
+        default_value: 336,
+        valid_range: { min: 24, max: 1440 },
+        description: "Relaxed cycle window for slow-burn circular movement detection",
+    },
+    {
+        config_key: "cycle_detection_time_budget_ms",
+        value: 1500,
+        default_value: 1500,
+        valid_range: { min: 200, max: 10000 },
+        description: "Cycle DFS time budget in milliseconds before bounded cutoff",
+    },
+    {
         config_key: "smurfing_tx_count_threshold",
         value: 3,
         default_value: 3,
         valid_range: { min: 2, max: 50 },
         description: "Minimum transaction count for smurfing pattern",
+    },
+    {
+        config_key: "smurfing_below_threshold_ratio_min",
+        value: 0.7,
+        default_value: 0.7,
+        valid_range: { min: 0.5, max: 1 },
+        description: "Minimum ratio of sub-CTR transactions in a suspicious smurfing window",
     },
     {
         config_key: "score_weight_cycle",
@@ -67,13 +88,16 @@ const DEFAULT_CONFIGS = [
 ];
 
 async function seedDefaultConfig({ systemConfigModel = SystemConfig, logger = console } = {}) {
-    const count = await systemConfigModel.countDocuments({});
-    if (count > 0) {
+    const existing = await systemConfigModel.find({}, { config_key: 1, _id: 0 }).lean();
+    const existingKeys = new Set(existing.map((item) => item.config_key));
+
+    const missingDefaults = DEFAULT_CONFIGS.filter((config) => !existingKeys.has(config.config_key));
+    if (missingDefaults.length === 0) {
         return;
     }
 
-    await systemConfigModel.insertMany(DEFAULT_CONFIGS);
-    logger.info("system_config_seeded", { count: DEFAULT_CONFIGS.length });
+    await systemConfigModel.insertMany(missingDefaults);
+    logger.info("system_config_seeded", { count: missingDefaults.length });
 }
 
 module.exports = {

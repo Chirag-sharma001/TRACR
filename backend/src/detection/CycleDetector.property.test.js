@@ -34,7 +34,7 @@ describe("CycleDetector property tests", () => {
         return { graph, newEdge, nodes };
     }
 
-    test("detects all generated cycles within window and rejects out-of-window cycles", async () => {
+    test("detects strict-window cycles and classifies slower cycles via relaxed window", async () => {
         const detector = new CycleDetector({ logger: { warn: jest.fn() } });
 
         await fc.assert(
@@ -44,10 +44,13 @@ describe("CycleDetector property tests", () => {
                 const inWindowGraph = buildCycleGraph(length, now, true);
                 const found = detector.detectCycles(inWindowGraph.graph, inWindowGraph.newEdge, 7, 72);
                 expect(found.length).toBeGreaterThanOrEqual(1);
+                expect(found[0].window_type).toBe("STRICT");
 
                 const outWindowGraph = buildCycleGraph(length, now, false);
-                const notFound = detector.detectCycles(outWindowGraph.graph, outWindowGraph.newEdge, 7, 72);
-                expect(notFound).toHaveLength(0);
+                const relaxed = detector.detectCycles(outWindowGraph.graph, outWindowGraph.newEdge, 7, 72);
+                expect(relaxed.length).toBeGreaterThanOrEqual(1);
+                expect(relaxed[0].window_type).toBe("RELAXED");
+                expect(relaxed[0].cycle_score).toBeLessThanOrEqual(found[0].cycle_score);
             }),
             { numRuns: 100 }
         );

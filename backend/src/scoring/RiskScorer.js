@@ -85,11 +85,19 @@ class RiskScorer {
 
         let score = 0;
         for (const anomaly of anomalies) {
+            if (Number.isFinite(Number(anomaly.severity))) {
+                score += Number(anomaly.severity);
+                continue;
+            }
+
             if (anomaly.anomalyType === "HIGH_VALUE_NEW_COUNTERPARTY") {
                 score += 40;
             }
             if (anomaly.anomalyType === "FREQUENCY_SPIKE") {
                 score += 35;
+            }
+            if (anomaly.anomalyType === "FREQUENCY_ELEVATION") {
+                score += 20;
             }
         }
 

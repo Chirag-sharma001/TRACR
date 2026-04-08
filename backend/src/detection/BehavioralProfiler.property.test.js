@@ -74,6 +74,36 @@ describe("BehavioralProfiler property tests", () => {
         );
     });
 
+    test("immature baseline with missing amount percentile does not emit high-value anomaly by default", async () => {
+        const profiler = new BehavioralProfiler({
+            accountModel: {},
+            transactionModel: { countDocuments: async () => 1 },
+        });
+
+        const account = {
+            baseline: {
+                history_days: 3,
+                amount_p90: 0,
+                amount_mean: 0,
+                amount_stddev: 0,
+                known_counterparties: [],
+                daily_freq_mean: 10,
+                daily_freq_stddev: 2,
+            },
+        };
+
+        const tx = {
+            sender_account_id: "ACC-S",
+            receiver_account_id: "ACC-R",
+            amount_usd: 999999,
+            timestamp: new Date().toISOString(),
+        };
+
+        const signal = await profiler.scoreAnomaly(tx, account);
+        const hasHighValue = Boolean(signal?.anomalies?.find((a) => a.anomalyType === "HIGH_VALUE_NEW_COUNTERPARTY"));
+        expect(hasHighValue).toBe(false);
+    });
+
     test("frequency anomaly appears iff observed count is greater than mean plus three stddev", async () => {
         await fc.assert(
             fc.asyncProperty(

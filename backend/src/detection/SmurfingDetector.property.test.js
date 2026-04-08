@@ -10,13 +10,15 @@ const {
 // Feature: intelligent-aml-framework, Property 13: Velocity Spike Detection at 3 Sigma
 
 describe("SmurfingDetector property tests", () => {
-    test("structuring emitted iff aggregate exceeds threshold and all individual amounts are below threshold", async () => {
+    test("structuring emitted iff aggregate exceeds threshold with sufficient sub-threshold concentration", async () => {
         await fc.assert(
             fc.asyncProperty(
                 fc.array(fc.integer({ min: 1, max: 15000 }), { minLength: 1, maxLength: 20 }),
                 async (amounts) => {
                     const detector = new SmurfingDetector({ logger: { warn: jest.fn() } });
                     const ctrThreshold = 10000;
+                    const minTxCount = 3;
+                    const minBelowThresholdRatio = 0.7;
                     let signal = null;
 
                     for (let i = 0; i < amounts.length; i += 1) {
@@ -28,12 +30,19 @@ describe("SmurfingDetector property tests", () => {
                         }, {
                             windowHours: 24,
                             ctrThreshold,
+                            minTxCount,
+                            minBelowThresholdRatio,
                         });
                     }
 
                     const aggregate = amounts.reduce((sum, v) => sum + v, 0);
-                    const allBelow = amounts.every((v) => v < ctrThreshold);
-                    const expected = aggregate >= ctrThreshold && allBelow;
+                    const belowCount = amounts.filter((v) => v < ctrThreshold).length;
+                    const ratio = amounts.length > 0 ? belowCount / amounts.length : 0;
+                    const expected =
+                        aggregate >= ctrThreshold &&
+                        amounts.length >= minTxCount &&
+                        belowCount >= minTxCount &&
+                        ratio >= minBelowThresholdRatio;
                     expect(Boolean(signal)).toBe(expected);
                 }
             ),
@@ -95,5 +104,34 @@ describe("SmurfingDetector property tests", () => {
             }),
             { numRuns: 100 }
         );
+    });
+
+    test("mixed-threshold structuring still alerts when sub-threshold ratio remains high", () => {
+        const detector = new SmurfingDetector({ logger: { warn: jest.fn() } });
+
+        const txs = [3200, 3400, 3600, 10250, 3500, 3300];
+        let signal = null;
+
+        for (let i = 0; i < txs.length; i += 1) {
+            signal = detector.evaluateSmurfing(
+                "ACC-MIXED",
+                {
+                    transaction_id: `mixed-${i}`,
+                    timestamp: new Date(Date.now() + i * 1000).toISOString(),
+                    amount_usd: txs[i],
+                    receiver_account_id: `R${i % 3}`,
+                },
+                {
+                    windowHours: 24,
+                    ctrThreshold: 10000,
+                    minTxCount: 3,
+                    minBelowThresholdRatio: 0.7,
+                }
+            );
+        }
+
+        expect(signal).toBeTruthy();
+        expect(signal.mixed_threshold_pattern).toBe(true);
+        expect(signal.below_threshold_ratio).toBeGreaterThanOrEqual(0.7);
     });
 });

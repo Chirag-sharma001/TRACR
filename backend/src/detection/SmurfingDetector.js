@@ -11,6 +11,12 @@ class SmurfingDetector {
     evaluateSmurfing(accountId, newTx, config = {}) {
         const windowHours = this.#getConfigNumber(config.windowHours, "rolling_window_hours", 24);
         const ctrThreshold = this.#getConfigNumber(config.ctrThreshold, "ctr_threshold", 10000);
+        const minTxCount = this.#getConfigNumber(config.minTxCount, "smurfing_tx_count_threshold", 3);
+        const minBelowThresholdRatio = this.#getConfigNumber(
+            config.minBelowThresholdRatio,
+            "smurfing_below_threshold_ratio_min",
+            0.7
+        );
 
         const txWindow = this.accountWindows.get(accountId) || [];
         const txTimestamp = new Date(newTx.timestamp).getTime();
@@ -27,16 +33,33 @@ class SmurfingDetector {
         this.accountWindows.set(accountId, trimmed);
 
         const aggregateAmount = trimmed.reduce((sum, entry) => sum + entry.amount, 0);
-        const allBelowThreshold = trimmed.every((entry) => entry.amount < ctrThreshold);
+        const belowThresholdCount = trimmed.filter((entry) => entry.amount < ctrThreshold).length;
+        const aboveThresholdCount = trimmed.length - belowThresholdCount;
+        const belowThresholdRatio = trimmed.length === 0 ? 0 : belowThresholdCount / trimmed.length;
         const distinctReceivers = new Set(trimmed.map((entry) => entry.receiverId)).size;
 
-        if (!(aggregateAmount >= ctrThreshold && allBelowThreshold)) {
+        const suspiciousStructuring =
+            aggregateAmount >= ctrThreshold &&
+            trimmed.length >= minTxCount &&
+            belowThresholdCount >= minTxCount &&
+            belowThresholdRatio >= minBelowThresholdRatio;
+
+        if (!suspiciousStructuring) {
             return null;
         }
 
-        const baseScore = this.computeSmurfingBaseScore(trimmed, { ctrThreshold, windowHours });
+        const baseScore = this.computeSmurfingBaseScore(trimmed, {
+            ctrThreshold,
+            windowHours,
+            belowThresholdRatio,
+            minTxCount,
+            minBelowThresholdRatio,
+        });
         const coordinatedMultiplierApplied = distinctReceivers >= 3;
-        const finalScore = coordinatedMultiplierApplied ? Math.min(100, baseScore * 1.25) : baseScore;
+        const mixedThresholdPenalty = aboveThresholdCount > 0 ? 0.9 : 1;
+        const finalScore = coordinatedMultiplierApplied
+            ? Math.min(100, baseScore * 1.25 * mixedThresholdPenalty)
+            : Math.min(100, baseScore * mixedThresholdPenalty);
 
         const timestamps = trimmed.map((entry) => entry.timestamp);
         const minTs = Math.min(...timestamps);
@@ -49,27 +72,35 @@ class SmurfingDetector {
             transaction_count: trimmed.length,
             aggregate_amount: aggregateAmount,
             individual_amounts: trimmed.map((entry) => entry.amount),
+            below_threshold_count: belowThresholdCount,
+            above_threshold_count: aboveThresholdCount,
+            below_threshold_ratio: belowThresholdRatio,
             distinct_receiver_count: distinctReceivers,
             time_span_hours: (maxTs - minTs) / (60 * 60 * 1000),
             coordinated_multiplier_applied: coordinatedMultiplierApplied,
+            mixed_threshold_pattern: aboveThresholdCount > 0,
             smurfing_score: finalScore,
             base_smurfing_score: baseScore,
         };
     }
 
     computeSmurfingBaseScore(window, config) {
-        const txCountScore = Math.min(50, window.length * 5);
+        const txCountFloor = Math.max(1, Number(config.minTxCount || 1));
+        const txCountScore = Math.min(35, (window.length / txCountFloor) * 18);
 
         const aggregate = window.reduce((sum, entry) => sum + entry.amount, 0);
-        const proximityRatio = Math.min(1, aggregate / (config.ctrThreshold * 2));
-        const proximityScore = Math.min(30, proximityRatio * 30);
+        const proximityRatio = Math.min(1.2, aggregate / (config.ctrThreshold * 1.5));
+        const proximityScore = Math.min(25, proximityRatio * 20.8);
 
         const timestamps = window.map((entry) => entry.timestamp).sort((a, b) => a - b);
         const durationHours = Math.max(1 / 60, (timestamps[timestamps.length - 1] - timestamps[0]) / (60 * 60 * 1000));
         const compressionRatio = Math.min(1, config.windowHours / durationHours);
         const timeCompressionScore = Math.min(20, compressionRatio * 20);
 
-        return Math.min(100, txCountScore + proximityScore + timeCompressionScore);
+        const ratioDelta = Math.max(0, Number(config.belowThresholdRatio || 0) - Number(config.minBelowThresholdRatio || 0));
+        const thresholdConsistencyScore = Math.min(20, ratioDelta * 100);
+
+        return Math.min(100, txCountScore + proximityScore + timeCompressionScore + thresholdConsistencyScore);
     }
 
     checkVelocitySpike(accountId, baseline, hourlyTxCount) {
