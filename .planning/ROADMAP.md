@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Governance, Contracts, and Observability** - Establish audit-ready config governance and detection quality telemetry. (completed 2026-04-09)
 - [x] **Phase 2: Durable Transaction Processing** - Ensure accepted transactions are processed replay-safely with operational recovery controls. (completed 2026-04-09)
-- [ ] **Phase 3: Detection Precision and Confidence** - Improve alert quality with segment-aware scoring and confidence signaling.
+- [x] **Phase 3: Detection Precision and Confidence** - Improve alert quality with segment-aware scoring and confidence signaling. (completed 2026-04-09)
 - [ ] **Phase 4: Explainability Interface and Evidence Replay** - Deliver explainable alert evidence and replayable suspicious movement context.
 - [ ] **Phase 5: Investigation Workflow Dashboard** - Formalize ownership, SLA escalation, and manager oversight for case handling.
 - [ ] **Phase 6: SAR Operations and Security Controls** - Complete SAR decision support with immutable auditability and scoped confidentiality.
@@ -62,8 +62,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md - Implement deterministic confidence + segment/pattern/geo-aware threshold policy in scoring contracts
-- [ ] 03-02-PLAN.md - Expose config-version before/after precision comparison telemetry for governance dashboards
+- [x] 03-01-PLAN.md - Implement deterministic confidence + segment/pattern/geo-aware threshold policy in scoring contracts
+- [x] 03-02-PLAN.md - Expose config-version before/after precision comparison telemetry for governance dashboards
 
 ### Phase 4: Explainability Interface and Evidence Replay
 **Goal**: Investigators and analysts can inspect why an alert fired through structured decomposition, evidence paths, and timeline replay.
@@ -109,7 +109,7 @@ Phases execute in numeric order: 1 -> 1.1 -> 1.2 -> 2 -> 2.1 -> 3
 |-------|----------------|--------|-----------|
 | 1. Governance, Contracts, and Observability | 3/3 | Complete    | 2026-04-09 |
 | 2. Durable Transaction Processing | 3/3 | Complete    | 2026-04-09 |
-| 3. Detection Precision and Confidence | 0/TBD | Not started | - |
+| 3. Detection Precision and Confidence | 2/2 | Complete    | 2026-04-09 |
 | 4. Explainability Interface and Evidence Replay | 0/TBD | Not started | - |
 | 5. Investigation Workflow Dashboard | 0/TBD | Not started | - |
 | 6. SAR Operations and Security Controls | 0/TBD | Not started | - |
@@ -142,7 +142,7 @@ Investigator workflow automation
 **Goal:** Analysts and investigators operate on a governed hybrid boundary where DFS-confirmed graph evidence remains deterministic truth and AI remains assistive, explainable, and reviewable.
 **Requirements**: PH7-HYBRID-BOUNDARY, PH7-XAI-PACKET, PH7-AI-GUARDRAILS
 **Depends on:** Phase 6
-**Plans:** 3/3 plans complete
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 07-01-PLAN.md - Enforce deterministic graph-truth boundary with candidate-vs-confirmed policy and evidence invariants
