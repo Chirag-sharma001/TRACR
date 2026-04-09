@@ -12,7 +12,7 @@ This roadmap evolves the existing AML backend into a precision-first, explainabl
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Governance, Contracts, and Observability** - Establish audit-ready config governance and detection quality telemetry.
+- [x] **Phase 1: Governance, Contracts, and Observability** - Establish audit-ready config governance and detection quality telemetry. (completed 2026-04-09)
 - [ ] **Phase 2: Durable Transaction Processing** - Ensure accepted transactions are processed replay-safely with operational recovery controls.
 - [ ] **Phase 3: Detection Precision and Confidence** - Improve alert quality with segment-aware scoring and confidence signaling.
 - [ ] **Phase 4: Explainability Interface and Evidence Replay** - Deliver explainable alert evidence and replayable suspicious movement context.
@@ -32,9 +32,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md - Implement governance lifecycle contracts with two-person approval and activation gates
-- [ ] 01-02-PLAN.md - Wire admin submit/approve/activate/rollback endpoints with immutable rollback audit provenance
-- [ ] 01-03-PLAN.md - Deliver detector/risk/version segmented daily and weekly governance telemetry contracts
+- [x] 01-01-PLAN.md - Implement governance lifecycle contracts with two-person approval and activation gates
+- [x] 01-02-PLAN.md - Wire admin submit/approve/activate/rollback endpoints with immutable rollback audit provenance
+- [x] 01-03-PLAN.md - Deliver detector/risk/version segmented daily and weekly governance telemetry contracts
 
 ### Phase 2: Durable Transaction Processing
 **Goal**: Operations can trust that every accepted transaction is processed exactly-once semantically, including replay and recovery scenarios.
@@ -98,7 +98,7 @@ Phases execute in numeric order: 1 -> 1.1 -> 1.2 -> 2 -> 2.1 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Governance, Contracts, and Observability | 0/3 | Planned | - |
+| 1. Governance, Contracts, and Observability | 3/3 | Complete    | 2026-04-09 |
 | 2. Durable Transaction Processing | 0/TBD | Not started | - |
 | 3. Detection Precision and Confidence | 0/TBD | Not started | - |
 | 4. Explainability Interface and Evidence Replay | 0/TBD | Not started | - |
