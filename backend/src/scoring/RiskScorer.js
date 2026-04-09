@@ -83,6 +83,7 @@ class RiskScorer {
             narrative_mapping: narrativeMapping,
             confidence_level: confidenceLevel,
         };
+        const lineage = this.#resolveConfigLineage(detectionResult);
 
         const alertDoc = {
             pattern_type: patternType,
@@ -98,6 +99,8 @@ class RiskScorer {
             smurfing_detail: detectionResult.smurfing_signal || null,
             behavioral_detail: detectionResult.behavioral_signal || null,
             xai_narrative: xaiNarrative,
+            config_version_id: lineage.config_version_id,
+            published_change_id: lineage.published_change_id,
         };
 
         const saved = await this.alertModel.create(alertDoc);
@@ -341,6 +344,32 @@ class RiskScorer {
                 timestamp: edge.timestamp || null,
                 txId: edge.txId || edge.transaction_id || null,
             }));
+    }
+
+    #resolveConfigLineage(detectionResult) {
+        const resultLineage = detectionResult?.config_lineage || null;
+        if (resultLineage && typeof resultLineage === "object") {
+            return {
+                config_version_id: resultLineage.config_version_id || null,
+                published_change_id: resultLineage.published_change_id || null,
+            };
+        }
+
+        const configVersionId = this.#getConfigValue("config_version_id", null);
+        const publishedChangeId = this.#getConfigValue("published_change_id", null);
+
+        return {
+            config_version_id: configVersionId,
+            published_change_id: publishedChangeId,
+        };
+    }
+
+    #getConfigValue(key, fallback) {
+        if (!this.thresholdConfig || typeof this.thresholdConfig.get !== "function") {
+            return fallback;
+        }
+
+        return this.thresholdConfig.get(key, fallback);
     }
 
     #getWeight(key, fallback) {

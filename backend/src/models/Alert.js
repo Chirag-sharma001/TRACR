@@ -152,6 +152,16 @@ const alertSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    config_version_id: {
+      type: String,
+      default: null,
+      index: true,
+    },
+    published_change_id: {
+      type: String,
+      default: null,
+      index: true,
+    },
     sar_draft_id: {
       type: String,
       default: null,
