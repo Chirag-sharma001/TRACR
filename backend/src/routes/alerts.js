@@ -1,6 +1,142 @@
 const express = require("express");
 const Alert = require("../models/Alert");
 
+const CONFIDENCE_LEVELS = new Set(["LOW", "MEDIUM", "HIGH"]);
+const SCORE_DECOMPOSITION_DEFAULTS = Object.freeze({
+    cycle_score: 0,
+    smurfing_score: 0,
+    behavioral_score: 0,
+    geographic_score: 0,
+    cycle_weight: 0.35,
+    smurfing_weight: 0.3,
+    behavioral_weight: 0.2,
+    geographic_weight: 0.15,
+});
+
+function mapTierToConfidence(riskTier) {
+    if (riskTier === "HIGH") return "HIGH";
+    if (riskTier === "MEDIUM") return "MEDIUM";
+    return "LOW";
+}
+
+function normalizeScoreDecomposition(alert) {
+    const source = alert.explainability_packet?.score_decomposition || alert.score_breakdown || {};
+
+    return {
+        cycle_score: Number(source.cycle_score || 0),
+        smurfing_score: Number(source.smurfing_score || 0),
+        behavioral_score: Number(source.behavioral_score || 0),
+        geographic_score: Number(source.geographic_score || 0),
+        cycle_weight: Number.isFinite(Number(source.cycle_weight))
+            ? Number(source.cycle_weight)
+            : SCORE_DECOMPOSITION_DEFAULTS.cycle_weight,
+        smurfing_weight: Number.isFinite(Number(source.smurfing_weight))
+            ? Number(source.smurfing_weight)
+            : SCORE_DECOMPOSITION_DEFAULTS.smurfing_weight,
+        behavioral_weight: Number.isFinite(Number(source.behavioral_weight))
+            ? Number(source.behavioral_weight)
+            : SCORE_DECOMPOSITION_DEFAULTS.behavioral_weight,
+        geographic_weight: Number.isFinite(Number(source.geographic_weight))
+            ? Number(source.geographic_weight)
+            : SCORE_DECOMPOSITION_DEFAULTS.geographic_weight,
+    };
+}
+
+function normalizeDeterministicEvidence(alert) {
+    const source = alert.explainability_packet?.deterministic_evidence || {};
+    const cycleDetail = alert.cycle_detail || {};
+
+    const sequenceFromSource = Array.isArray(source.transaction_sequence)
+        ? source.transaction_sequence
+        : [];
+    const sequenceFromCycle = Array.isArray(cycleDetail.transaction_sequence)
+        ? cycleDetail.transaction_sequence
+        : [];
+    const transactionSequence = sequenceFromSource.length > 0 ? sequenceFromSource : sequenceFromCycle;
+
+    const sequenceTransactionIds = transactionSequence
+        .map((edge) => edge?.txId || edge?.transaction_id)
+        .filter(Boolean);
+    const baseTransactionIds = Array.isArray(source.transaction_ids)
+        ? source.transaction_ids
+        : Array.isArray(alert.transaction_ids)
+            ? alert.transaction_ids
+            : [];
+
+    const sourceAccounts = Array.isArray(source.involved_accounts)
+        ? source.involved_accounts
+        : [];
+    const cycleAccounts = Array.isArray(cycleDetail.involved_accounts)
+        ? cycleDetail.involved_accounts
+        : [];
+    const alertAccounts = Array.isArray(alert.involved_accounts)
+        ? alert.involved_accounts
+        : [];
+
+    return {
+        pattern_type: source.pattern_type || alert.pattern_type || null,
+        transaction_ids: Array.from(new Set([...baseTransactionIds, ...sequenceTransactionIds])),
+        involved_accounts: Array.from(new Set([...sourceAccounts, ...cycleAccounts, ...alertAccounts].filter(Boolean))),
+        transaction_sequence: transactionSequence,
+        window_metadata: source.window_metadata || cycleDetail.window_metadata || null,
+    };
+}
+
+function normalizeNarrativeMapping(alert) {
+    const source = alert.explainability_packet?.narrative_mapping || {};
+    const summary = source.summary || alert.xai_narrative || null;
+    const statements = Array.isArray(source.statements) ? source.statements : [];
+
+    if (statements.length > 0) {
+        return {
+            summary,
+            statements,
+        };
+    }
+
+    return {
+        summary,
+        statements: summary
+            ? [
+                {
+                    claim: summary,
+                    evidence_refs: {
+                        transaction_ids: Array.isArray(alert.transaction_ids) ? alert.transaction_ids : [],
+                        account_ids: Array.isArray(alert.involved_accounts) ? alert.involved_accounts : [],
+                    },
+                },
+            ]
+            : [],
+    };
+}
+
+function normalizeConfidenceLevel(alert) {
+    const candidate = alert.explainability_packet?.confidence_level
+        || alert.confidence_level
+        || mapTierToConfidence(alert.risk_tier);
+
+    return CONFIDENCE_LEVELS.has(candidate) ? candidate : mapTierToConfidence(alert.risk_tier);
+}
+
+function normalizeAlertPayload(alert) {
+    const scoreDecomposition = normalizeScoreDecomposition(alert);
+    const deterministicEvidence = normalizeDeterministicEvidence(alert);
+    const narrativeMapping = normalizeNarrativeMapping(alert);
+    const confidenceLevel = normalizeConfidenceLevel(alert);
+
+    return {
+        ...alert,
+        confidence_level: confidenceLevel,
+        score_breakdown: scoreDecomposition,
+        explainability_packet: {
+            deterministic_evidence: deterministicEvidence,
+            score_decomposition: scoreDecomposition,
+            narrative_mapping: narrativeMapping,
+            confidence_level: confidenceLevel,
+        },
+    };
+}
+
 function createAlertRoutes({
     jwtMiddleware,
     sarService,
@@ -46,7 +182,7 @@ function createAlertRoutes({
             });
         }
 
-        return res.json({ page, limit, total, items });
+          return res.json({ page, limit, total, items: items.map(normalizeAlertPayload) });
     });
 
     router.get("/:id", jwtMiddleware, async (req, res) => {
@@ -67,7 +203,7 @@ function createAlertRoutes({
             });
         }
 
-        return res.json(alert);
+          return res.json(normalizeAlertPayload(alert));
     });
 
     router.post("/:id/sar", jwtMiddleware, async (req, res) => {
