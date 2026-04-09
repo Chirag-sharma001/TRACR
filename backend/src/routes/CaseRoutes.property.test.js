@@ -122,7 +122,7 @@ describe("Case routes property tests", () => {
 
         const router = createCaseRoutes({
             jwtMiddleware,
-            auditLogger: { log: jest.fn(async () => {}) },
+            auditLogger: { log: jest.fn(async () => { }) },
             caseModel,
         });
 
