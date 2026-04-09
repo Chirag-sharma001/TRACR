@@ -1,6 +1,7 @@
 const fc = require("fast-check");
 const GeoRiskEvaluator = require("./GeoRiskEvaluator");
 const RiskScorer = require("./RiskScorer");
+const Alert = require("../models/Alert");
 
 // Feature: intelligent-aml-framework, Property 16: Composite Risk Score Invariants
 // Feature: intelligent-aml-framework, Property 17: Geographic Risk Score for FATF Jurisdictions
@@ -187,5 +188,18 @@ describe("RiskScorer property tests", () => {
 
         const expectedBefore = Math.max(0, Math.min(100, 90 * 0.35 + 90 * 0.3 + 40 * 0.2));
         expect(before.risk_score).toBeCloseTo(expectedBefore, 8);
+    });
+
+    test("alert schema includes confidence_level constrained to LOW, MEDIUM, HIGH", () => {
+        const confidencePath = Alert.schema.path("confidence_level");
+        expect(confidencePath).toBeDefined();
+        expect(confidencePath.options.enum).toEqual(["LOW", "MEDIUM", "HIGH"]);
+    });
+
+    test("alert schema includes deterministic evidence references in explainability_packet", () => {
+        expect(Alert.schema.path("explainability_packet")).toBeDefined();
+        expect(Alert.schema.path("explainability_packet.deterministic_evidence")).toBeDefined();
+        expect(Alert.schema.path("explainability_packet.deterministic_evidence.transaction_ids")).toBeDefined();
+        expect(Alert.schema.path("explainability_packet.deterministic_evidence.involved_accounts")).toBeDefined();
     });
 });

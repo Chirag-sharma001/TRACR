@@ -15,6 +15,70 @@ const scoreBreakdownSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const deterministicEvidenceSchema = new mongoose.Schema(
+  {
+    pattern_type: {
+      type: String,
+      enum: ["CIRCULAR_TRADING", "SMURFING", "BEHAVIORAL_ANOMALY"],
+      default: null,
+    },
+    transaction_ids: {
+      type: [String],
+      default: [],
+    },
+    involved_accounts: {
+      type: [String],
+      default: [],
+    },
+    transaction_sequence: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: [],
+    },
+    window_metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+  },
+  { _id: false }
+);
+
+const rationaleMappingSchema = new mongoose.Schema(
+  {
+    summary: {
+      type: String,
+      default: null,
+    },
+    statements: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: [],
+    },
+  },
+  { _id: false }
+);
+
+const explainabilityPacketSchema = new mongoose.Schema(
+  {
+    deterministic_evidence: {
+      type: deterministicEvidenceSchema,
+      default: () => ({}),
+    },
+    score_decomposition: {
+      type: scoreBreakdownSchema,
+      default: () => ({}),
+    },
+    narrative_mapping: {
+      type: rationaleMappingSchema,
+      default: () => ({}),
+    },
+    confidence_level: {
+      type: String,
+      enum: ["LOW", "MEDIUM", "HIGH"],
+      default: "LOW",
+    },
+  },
+  { _id: false }
+);
+
 const alertSchema = new mongoose.Schema(
   {
     alert_id: {
@@ -56,10 +120,22 @@ const alertSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+      confidence_level: {
+        type: String,
+        enum: ["LOW", "MEDIUM", "HIGH"],
+        required: true,
+        default: "LOW",
+        index: true,
+      },
     score_breakdown: {
       type: scoreBreakdownSchema,
       required: true,
     },
+      explainability_packet: {
+        type: explainabilityPacketSchema,
+        required: true,
+        default: () => ({}),
+      },
     cycle_detail: {
       type: mongoose.Schema.Types.Mixed,
       default: null,
