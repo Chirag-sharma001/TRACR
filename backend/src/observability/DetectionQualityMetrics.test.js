@@ -211,4 +211,82 @@ describe("DetectionQualityMetrics", () => {
             risk_tiers: { low: 0, medium: 0, high: 0 },
         });
     });
+
+    test("returns dashboard-ready before/after/delta comparison by config version", async () => {
+        const service = new DetectionQualityMetrics({
+            alertModel: {
+                aggregate: jest.fn(async () => [
+                    {
+                        _id: {
+                            cohort: "before",
+                            config_version_id: "cfg-v41",
+                            published_change_id: "chg-9000",
+                            segment: "retail",
+                            pattern_type: "CIRCULAR_TRADING",
+                            confidence_level: "HIGH",
+                        },
+                        count: 4,
+                    },
+                    {
+                        _id: {
+                            cohort: "after",
+                            config_version_id: "cfg-v42",
+                            published_change_id: "chg-9001",
+                            segment: null,
+                            pattern_type: "SMURFING",
+                            confidence_level: null,
+                        },
+                        count: 2,
+                    },
+                ]),
+            },
+            now: () => new Date("2026-04-10T12:00:00.000Z"),
+        });
+
+        const result = await service.getDetectionQualityComparisonTelemetry({
+            before_config_version_id: "cfg-v41",
+            after_config_version_id: "cfg-v42",
+            day_window_days: 9,
+            week_window_weeks: 8,
+        });
+
+        expect(result).toEqual(expect.objectContaining({
+            generated_at: "2026-04-10T12:00:00.000Z",
+            selectors: {
+                before: { config_version_id: "cfg-v41", published_change_id: null },
+                after: { config_version_id: "cfg-v42", published_change_id: null },
+            },
+            windows: { day_window_days: 9, week_window_weeks: 8 },
+            before: expect.any(Object),
+            after: expect.any(Object),
+            delta: expect.any(Object),
+        }));
+
+        expect(result.before).toEqual(expect.objectContaining({
+            total: 4,
+            lineage: {
+                config_version_id: "cfg-v41",
+                published_change_id: "chg-9000",
+            },
+            breakdowns: expect.objectContaining({
+                segment: {
+                    retail: { total: 4 },
+                },
+                pattern_type: {
+                    CIRCULAR_TRADING: { total: 4 },
+                },
+                confidence_level: {
+                    HIGH: { total: 4 },
+                },
+            }),
+        }));
+
+        expect(result.after.breakdowns.segment).toEqual({
+            unknown: { total: 2 },
+        });
+        expect(result.after.breakdowns.confidence_level).toEqual({
+            unknown: { total: 2 },
+        });
+        expect(result.delta).toEqual({ total: -2 });
+    });
 });
