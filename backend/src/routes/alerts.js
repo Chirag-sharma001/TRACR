@@ -324,7 +324,7 @@ function createAlertRoutes({
             });
         }
 
-          return res.json({ page, limit, total, items: items.map(normalizeAlertPayload) });
+        return res.json({ page, limit, total, items: items.map(normalizeAlertPayload) });
     });
 
     router.get("/:id", jwtMiddleware, async (req, res) => {
@@ -345,7 +345,7 @@ function createAlertRoutes({
             });
         }
 
-          return res.json(normalizeAlertPayload(alert));
+        return res.json(normalizeAlertPayload(alert));
     });
 
     router.get("/:id/explainability", jwtMiddleware, async (req, res) => {
