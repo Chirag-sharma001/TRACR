@@ -78,4 +78,41 @@ describe("AuditLogger property tests", () => {
             { numRuns: 100 }
         );
     });
+
+    test("logged metadata remains stable even if caller mutates original payload", async () => {
+        const created = [];
+        const auditLogger = new AuditLogger({
+            auditLogModel: {
+                create: async (doc) => {
+                    created.push(doc);
+                    return { ...doc, toObject: () => doc };
+                },
+            },
+        });
+
+        await fc.assert(
+            fc.asyncProperty(fc.string({ minLength: 1, maxLength: 12 }), async (marker) => {
+                const metadata = { marker, nested: { value: marker } };
+
+                await auditLogger.log({
+                    userId: "u1",
+                    userRole: "ADMIN",
+                    actionType: "CONFIG_APPROVE",
+                    resourceType: "CONFIG_CHANGE",
+                    resourceId: "chg-1",
+                    outcome: "SUCCESS",
+                    metadata,
+                    ipAddress: "127.0.0.1",
+                });
+
+                metadata.marker = "mutated";
+                metadata.nested.value = "mutated";
+
+                const logged = created.at(-1);
+                expect(logged.metadata.marker).toBe(marker);
+                expect(logged.metadata.nested.value).toBe(marker);
+            }),
+            { numRuns: 40 }
+        );
+    });
 });

@@ -150,6 +150,80 @@ class ConfigGovernanceService {
         return change;
     }
 
+    async rollbackChange({
+        change_id,
+        rollback_actor_id,
+        rollback_reason,
+        original_change_id,
+        note = "",
+    }) {
+        if (!rollback_actor_id) {
+            throw new Error("rollback_actor_required");
+        }
+        if (!rollback_reason) {
+            throw new Error("rollback_reason_required");
+        }
+        if (!original_change_id) {
+            throw new Error("original_change_id_required");
+        }
+
+        const change = await this.configChangeRequestModel.findById(change_id);
+        if (!change) {
+            throw new Error("change_not_found");
+        }
+
+        const original = await this.configChangeRequestModel.findById(original_change_id);
+        if (!original) {
+            throw new Error("original_change_not_found");
+        }
+
+        if (![GOVERNANCE_STATUS.APPROVED, GOVERNANCE_STATUS.ACTIVE].includes(original.status)) {
+            throw new Error("original_change_not_approved");
+        }
+
+        const originalConfig = original.requested_config || {};
+        const configKey = originalConfig.config_key;
+
+        if (!configKey) {
+            throw new Error("requested_config_required");
+        }
+
+        const occurredAt = this.now();
+        const configVersionId = `cfg:${change._id}:rollback:${occurredAt.toISOString()}`;
+
+        await this.systemConfigModel.findOneAndUpdate(
+            { config_key: configKey },
+            {
+                $set: {
+                    value: originalConfig.value,
+                    updated_by: rollback_actor_id,
+                    updated_at: occurredAt,
+                    config_version_id: configVersionId,
+                    published_change_id: original._id,
+                },
+            },
+            { upsert: false, new: true }
+        );
+
+        const previousStatus = change.status;
+        change.status = GOVERNANCE_STATUS.ROLLED_BACK;
+        change.rolled_back_by = rollback_actor_id;
+        change.rolled_back_at = occurredAt;
+        change.transition_history = [
+            ...(Array.isArray(change.transition_history) ? change.transition_history : []),
+            {
+                from_status: previousStatus,
+                to_status: GOVERNANCE_STATUS.ROLLED_BACK,
+                actor_id: rollback_actor_id,
+                occurred_at: occurredAt,
+                note: note || rollback_reason,
+            },
+        ];
+
+        await this.#persistChange(change);
+        return change;
+    }
+
     async #persistChange(change) {
         if (change && typeof change.save === "function") {
             await change.save();

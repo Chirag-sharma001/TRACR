@@ -11,17 +11,39 @@ function mapGovernanceError(error) {
     case "requested_config_required":
     case "approver_required":
     case "activator_required":
+    case "rollback_actor_required":
+    case "rollback_reason_required":
+    case "original_change_id_required":
         return 400;
     case "self_approval_forbidden":
         return 403;
     case "change_not_found":
+    case "original_change_not_found":
         return 404;
     case "approval_required":
     case "invalid_transition":
+    case "original_change_not_approved":
         return 409;
     default:
         return 500;
     }
+}
+
+async function emitGovernanceAudit(auditLogger, req, event) {
+    if (!auditLogger || typeof auditLogger.log !== "function") {
+        return;
+    }
+
+    await auditLogger.log({
+        userId: req.user.user_id,
+        userRole: req.user.role,
+        actionType: event.actionType,
+        resourceType: "CONFIG_CHANGE",
+        resourceId: event.resourceId,
+        outcome: "SUCCESS",
+        metadata: event.metadata,
+        ipAddress: req.ip,
+    });
 }
 
 function createAdminRoutes({
@@ -61,6 +83,15 @@ function createAdminRoutes({
                 requested_config: req.body?.requested_config,
             });
 
+            await emitGovernanceAudit(auditLogger, req, {
+                actionType: "CONFIG_SUBMIT",
+                resourceId: change._id,
+                metadata: {
+                    reason: req.body?.reason,
+                    requested_config: req.body?.requested_config,
+                },
+            });
+
             return res.status(201).json(change);
         } catch (error) {
             const code = mapGovernanceError(error);
@@ -74,6 +105,14 @@ function createAdminRoutes({
                 change_id: req.params.id,
                 approver_id: req.user.user_id,
                 note: req.body?.note || "",
+            });
+
+            await emitGovernanceAudit(auditLogger, req, {
+                actionType: "CONFIG_APPROVE",
+                resourceId: change._id,
+                metadata: {
+                    note: req.body?.note || "",
+                },
             });
 
             return res.json(change);
@@ -94,6 +133,51 @@ function createAdminRoutes({
             if (thresholdConfig && typeof thresholdConfig.reload === "function") {
                 await thresholdConfig.reload();
             }
+
+            await emitGovernanceAudit(auditLogger, req, {
+                actionType: "CONFIG_ACTIVATE",
+                resourceId: change._id,
+                metadata: {
+                    note: req.body?.note || "",
+                },
+            });
+
+            return res.json(change);
+        } catch (error) {
+            const code = mapGovernanceError(error);
+            return res.status(code).json({ error: error.message });
+        }
+    });
+
+    router.post("/config/changes/:id/rollback", async (req, res) => {
+        const rollbackReason = req.body?.rollback_reason;
+        const originalChangeId = req.body?.original_change_id;
+
+        if (!rollbackReason || !originalChangeId) {
+            return res.status(400).json({ error: "rollback_reason_and_original_change_id_required" });
+        }
+
+        try {
+            const change = await configGovernanceService.rollbackChange({
+                change_id: req.params.id,
+                rollback_actor_id: req.user.user_id,
+                rollback_reason: rollbackReason,
+                original_change_id: originalChangeId,
+                note: req.body?.note || "",
+            });
+
+            if (thresholdConfig && typeof thresholdConfig.reload === "function") {
+                await thresholdConfig.reload();
+            }
+
+            await emitGovernanceAudit(auditLogger, req, {
+                actionType: "CONFIG_ROLLBACK",
+                resourceId: change._id,
+                metadata: {
+                    rollback_reason: rollbackReason,
+                    original_change_id: originalChangeId,
+                },
+            });
 
             return res.json(change);
         } catch (error) {
