@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Durable Transaction Processing** - Ensure accepted transactions are processed replay-safely with operational recovery controls. (completed 2026-04-09)
 - [x] **Phase 3: Detection Precision and Confidence** - Improve alert quality with segment-aware scoring and confidence signaling. (completed 2026-04-09)
 - [x] **Phase 4: Explainability Interface and Evidence Replay** - Deliver explainable alert evidence and replayable suspicious movement context. (completed 2026-04-10)
-- [ ] **Phase 5: Investigation Workflow Dashboard** - Formalize ownership, SLA escalation, and manager oversight for case handling.
+- [x] **Phase 5: Investigation Workflow Dashboard** - Formalize ownership, SLA escalation, and manager oversight for case handling. (completed 2026-04-10)
 - [ ] **Phase 6: SAR Operations and Security Controls** - Complete SAR decision support with immutable auditability and scoped confidentiality.
 
 ## Phase Details
@@ -89,8 +89,12 @@ Plans:
   1. Investigator can assign or claim alert ownership and SLA timers start automatically.
   2. Escalation states update when SLA thresholds are crossed, and managers can triage from an oversight dashboard.
   3. Case progression to no-file outcomes requires a mandatory documented rationale.
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
+
+Plans:
+- [x] 05-01-PLAN.md - Implement ownership assignment/claim contracts with automatic SLA timers and deterministic escalation state
+- [x] 05-02-PLAN.md - Add manager oversight dashboard triage metrics and mandatory no-file rationale closure guardrail
 
 ### Phase 6: SAR Operations and Security Controls
 **Goal**: SAR decisions are evidence-grounded, deadline-aware, and protected by strict confidentiality and audit controls.
@@ -107,7 +111,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 1.1 -> 1.2 -> 2 -> 2.1 -> 3 -> 4
+Phases execute in numeric order: 1 -> 1.1 -> 1.2 -> 2 -> 2.1 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -115,7 +119,7 @@ Phases execute in numeric order: 1 -> 1.1 -> 1.2 -> 2 -> 2.1 -> 3 -> 4
 | 2. Durable Transaction Processing | 3/3 | Complete    | 2026-04-09 |
 | 3. Detection Precision and Confidence | 2/2 | Complete    | 2026-04-09 |
 | 4. Explainability Interface and Evidence Replay | 2/2 | Complete    | 2026-04-10 |
-| 5. Investigation Workflow Dashboard | 0/TBD | Not started | - |
+| 5. Investigation Workflow Dashboard | 2/2 | Complete    | 2026-04-10 |
 | 6. SAR Operations and Security Controls | 0/TBD | Not started | - |
 
 ### Phase 7: For your AML problem, the best approach is not “agentic AI vs DFS.” It should be a hybrid system: DFS/graph algorithms for exact pattern detection, and AI/agentic AI for prioritization, explanation, investigation support, and SAR drafting. Graph analytics is especially strong for AML because money laundering is fundamentally a network problem, while explainable AI is important because AML teams need clear, auditable reasons for alerts.

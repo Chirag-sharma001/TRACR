@@ -23,9 +23,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Investigation Workflow
 
-- [ ] **WFL-01**: Investigator can assign alert ownership with SLA timers and escalation states
-- [ ] **WFL-02**: Investigator can progress case states with mandatory documented no-file rationale when SAR is not filed
-- [ ] **WFL-03**: Manager can monitor backlog, quality, and timeliness through an oversight dashboard
+- [x] **WFL-01**: Investigator can assign alert ownership with SLA timers and escalation states
+- [x] **WFL-02**: Investigator can progress case states with mandatory documented no-file rationale when SAR is not filed
+- [x] **WFL-03**: Manager can monitor backlog, quality, and timeliness through an oversight dashboard
 
 ### SAR Operations
 
@@ -83,9 +83,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EXP-02 | Phase 4 | Completed (2026-04-10) |
 | EXP-03 | Phase 4 | Completed (2026-04-10) |
 | EXP-04 | Phase 4 | Completed (2026-04-10) |
-| WFL-01 | Phase 5 | Pending |
-| WFL-02 | Phase 5 | Pending |
-| WFL-03 | Phase 5 | Pending |
+| WFL-01 | Phase 5 | Completed (2026-04-10) |
+| WFL-02 | Phase 5 | Completed (2026-04-10) |
+| WFL-03 | Phase 5 | Completed (2026-04-10) |
 | SAR-01 | Phase 6 | Pending |
 | SAR-02 | Phase 6 | Pending |
 | SAR-03 | Phase 6 | Pending |
@@ -104,4 +104,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-04-09*
-*Last updated: 2026-04-10 after Phase 04 execution and verification*
+*Last updated: 2026-04-10 after Phase 05 execution and verification*
