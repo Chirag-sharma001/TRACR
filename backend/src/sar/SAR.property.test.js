@@ -1,6 +1,7 @@
 const fc = require("fast-check");
 const PromptBuilder = require("./PromptBuilder");
 const SARFormatter = require("./SARFormatter");
+const SARService = require("./SARService");
 
 // Feature: intelligent-aml-framework, Property 20: SAR Prompt Contains All Required Fields
 // Feature: intelligent-aml-framework, Property 21: SAR Draft Section Completeness
@@ -87,5 +88,125 @@ describe("SAR property tests", () => {
             }),
             { numRuns: 100 }
         );
+    });
+
+    test("SAR generation includes source evidence references and advisory metadata", async () => {
+        const sarDraftModel = {
+            create: jest.fn(async (payload) => ({
+                ...payload,
+                sar_id: "sar-123",
+                generated_at: payload.generated_at,
+                toObject() {
+                    return {
+                        ...payload,
+                        sar_id: "sar-123",
+                        generated_at: payload.generated_at,
+                    };
+                },
+            })),
+        };
+
+        const service = new SARService({
+            sarDraftModel,
+            promptBuilder: { build: jest.fn(() => "prompt") },
+            geminiClient: { generate: jest.fn(async () => ({ requestId: "req-123", partial: false, text: "{}" })) },
+            sarFormatter: {
+                format: jest.fn(() => ({
+                    subject_summary: "summary",
+                    activity_narrative: "narrative",
+                    transaction_timeline: [],
+                    risk_indicators: [{ key: "velocity" }],
+                    recommended_filing_category: "MANDATORY",
+                    is_partial: false,
+                })),
+            },
+            sarQueue: { enqueue: (fn) => fn() },
+            auditLogger: null,
+            logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn() },
+        });
+
+        const result = await service.generateSAR({
+            alert: {
+                alert_id: "alert-123",
+                subject_account_id: "acct-10",
+                transaction_ids: ["tx-1", "tx-2"],
+                pattern_type: "SMURFING",
+            },
+            account: { account_id: "acct-10" },
+            generatedBy: "user-1",
+            caseId: "case-1",
+        });
+
+        const persistedPayload = sarDraftModel.create.mock.calls[0][0];
+        const sourceTraceIndicator = persistedPayload.risk_indicators.find(
+            (indicator) => indicator && indicator.type === "SOURCE_EVIDENCE_TRACE"
+        );
+
+        expect(sourceTraceIndicator).toEqual(
+            expect.objectContaining({
+                alert_id: "alert-123",
+                account_id: "acct-10",
+                transaction_ids: ["tx-1", "tx-2"],
+            })
+        );
+
+        expect(result.ai_advisory).toEqual(
+            expect.objectContaining({
+                mode: "ADVISORY_ONLY",
+                decision_authority: "HUMAN_REQUIRED",
+                human_review_required: true,
+            })
+        );
+
+        expect(result.evidence_trace).toEqual(
+            expect.objectContaining({
+                alert_id: "alert-123",
+                case_id: "case-1",
+                account_id: "acct-10",
+                transaction_ids: ["tx-1", "tx-2"],
+            })
+        );
+    });
+
+    test("SAR generation rejects AI attempts to finalize filing decisions", async () => {
+        const sarDraftModel = {
+            create: jest.fn(async (payload) => payload),
+        };
+
+        const service = new SARService({
+            sarDraftModel,
+            promptBuilder: { build: jest.fn(() => "prompt") },
+            geminiClient: { generate: jest.fn(async () => ({ requestId: "req-123", partial: false, text: "{}" })) },
+            sarFormatter: {
+                format: jest.fn(() => ({
+                    subject_summary: "summary",
+                    activity_narrative: "narrative",
+                    transaction_timeline: [],
+                    risk_indicators: [],
+                    recommended_filing_category: "MANDATORY",
+                    is_partial: false,
+                    filing_decision_finalized: true,
+                })),
+            },
+            sarQueue: { enqueue: (fn) => fn() },
+            auditLogger: null,
+            logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn() },
+        });
+
+        await expect(
+            service.generateSAR({
+                alert: {
+                    alert_id: "alert-123",
+                    subject_account_id: "acct-10",
+                    transaction_ids: ["tx-1", "tx-2"],
+                    pattern_type: "SMURFING",
+                },
+                account: { account_id: "acct-10" },
+                generatedBy: "user-1",
+                caseId: "case-1",
+            })
+        ).rejects.toMatchObject({ code: "human_decision_required" });
+
+        expect(sarDraftModel.create).not.toHaveBeenCalled();
     });
 });
