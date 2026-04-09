@@ -29,7 +29,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. Compliance manager can retrieve calibration and drift signals segmented by detector/risk context.
   2. Admin can submit threshold/config changes that require explicit approval before activation.
   3. Admin can roll back a published config change, and the audit trail records requester, approver, and rollback reason.
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md - Implement governance lifecycle contracts with two-person approval and activation gates
+- [ ] 01-02-PLAN.md - Wire admin submit/approve/activate/rollback endpoints with immutable rollback audit provenance
+- [ ] 01-03-PLAN.md - Deliver detector/risk/version segmented daily and weekly governance telemetry contracts
 
 ### Phase 2: Durable Transaction Processing
 **Goal**: Operations can trust that every accepted transaction is processed exactly-once semantically, including replay and recovery scenarios.
@@ -93,7 +98,7 @@ Phases execute in numeric order: 1 -> 1.1 -> 1.2 -> 2 -> 2.1 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Governance, Contracts, and Observability | 0/TBD | Not started | - |
+| 1. Governance, Contracts, and Observability | 0/3 | Planned | - |
 | 2. Durable Transaction Processing | 0/TBD | Not started | - |
 | 3. Detection Precision and Confidence | 0/TBD | Not started | - |
 | 4. Explainability Interface and Evidence Replay | 0/TBD | Not started | - |

@@ -77,7 +77,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | DET-01 | Phase 3 | Pending |
 | DET-02 | Phase 2 | Pending |
-| DET-03 | Phase 1 | Pending |
+| DET-03 | Phase 1 | Planned |
 | DET-04 | Phase 3 | Pending |
 | EXP-01 | Phase 4 | Pending |
 | EXP-02 | Phase 4 | Pending |
@@ -91,7 +91,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SAR-03 | Phase 6 | Pending |
 | GOV-01 | Phase 6 | Pending |
 | GOV-02 | Phase 6 | Pending |
-| GOV-03 | Phase 1 | Pending |
+| GOV-03 | Phase 1 | Planned |
 | GOV-04 | Phase 6 | Pending |
 | PH7-HYBRID-BOUNDARY | Phase 7 | Pending |
 | PH7-XAI-PACKET | Phase 7 | Pending |
