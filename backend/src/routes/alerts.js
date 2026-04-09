@@ -137,6 +137,147 @@ function normalizeAlertPayload(alert) {
     };
 }
 
+function buildExplainabilityPayload(alert) {
+    const normalized = normalizeAlertPayload(alert);
+    const packet = normalized.explainability_packet || {};
+    const deterministicEvidence = packet.deterministic_evidence || {};
+    const sequence = Array.isArray(deterministicEvidence.transaction_sequence)
+        ? deterministicEvidence.transaction_sequence
+        : [];
+    const graphEdges = sequence.map((edge, index) => ({
+        index,
+        from: edge?.from || null,
+        to: edge?.to || null,
+        transaction_id: edge?.txId || edge?.transaction_id || null,
+        timestamp: edge?.timestamp || null,
+        amount: Number(edge?.amount || 0),
+    }));
+
+    return {
+        alert_id: normalized.alert_id,
+        pattern_type: normalized.pattern_type,
+        risk_score: normalized.risk_score,
+        risk_tier: normalized.risk_tier,
+        confidence_level: packet.confidence_level || normalized.confidence_level,
+        score_decomposition: packet.score_decomposition || normalizeScoreDecomposition(normalized),
+        evidence_path: {
+            pattern_type: deterministicEvidence.pattern_type || normalized.pattern_type,
+            transaction_ids: Array.isArray(deterministicEvidence.transaction_ids)
+                ? deterministicEvidence.transaction_ids
+                : [],
+            involved_accounts: Array.isArray(deterministicEvidence.involved_accounts)
+                ? deterministicEvidence.involved_accounts
+                : [],
+            transaction_sequence: sequence,
+            window_metadata: deterministicEvidence.window_metadata || null,
+            graph: {
+                nodes: (deterministicEvidence.involved_accounts || []).map((accountId) => ({
+                    account_id: accountId,
+                })),
+                edges: graphEdges,
+            },
+        },
+        narrative: {
+            summary: packet.narrative_mapping?.summary || normalized.xai_narrative || null,
+            statements: Array.isArray(packet.narrative_mapping?.statements)
+                ? packet.narrative_mapping.statements
+                : [],
+            text: normalized.xai_narrative || packet.narrative_mapping?.summary || null,
+        },
+    };
+}
+
+function buildReplayTimeline(deterministicEvidence) {
+    const sequence = Array.isArray(deterministicEvidence.transaction_sequence)
+        ? deterministicEvidence.transaction_sequence
+        : [];
+
+    if (sequence.length > 0) {
+        return sequence
+            .map((edge, idx) => ({
+                source: "sequence",
+                order_key: idx,
+                transaction_id: edge?.txId || edge?.transaction_id || null,
+                from: edge?.from || null,
+                to: edge?.to || null,
+                amount: Number(edge?.amount || 0),
+                timestamp: edge?.timestamp || null,
+            }))
+            .sort((left, right) => {
+                const leftTime = left.timestamp ? Date.parse(left.timestamp) : Number.POSITIVE_INFINITY;
+                const rightTime = right.timestamp ? Date.parse(right.timestamp) : Number.POSITIVE_INFINITY;
+
+                if (leftTime !== rightTime) {
+                    return leftTime - rightTime;
+                }
+
+                const leftId = String(left.transaction_id || "");
+                const rightId = String(right.transaction_id || "");
+                if (leftId !== rightId) {
+                    return leftId.localeCompare(rightId);
+                }
+
+                return left.order_key - right.order_key;
+            })
+            .map((step, index) => ({
+                index: index + 1,
+                source: step.source,
+                transaction_id: step.transaction_id,
+                from: step.from,
+                to: step.to,
+                amount: step.amount,
+                timestamp: step.timestamp,
+            }));
+    }
+
+    const transactionIds = Array.isArray(deterministicEvidence.transaction_ids)
+        ? deterministicEvidence.transaction_ids
+        : [];
+
+    return [...transactionIds]
+        .filter(Boolean)
+        .sort((left, right) => String(left).localeCompare(String(right)))
+        .map((transactionId, index) => ({
+            index: index + 1,
+            source: "transaction_ids",
+            transaction_id: transactionId,
+            from: null,
+            to: null,
+            amount: null,
+            timestamp: null,
+        }));
+}
+
+function buildEvidenceReplayPayload(alert) {
+    const normalized = normalizeAlertPayload(alert);
+    const deterministicEvidence = normalized.explainability_packet?.deterministic_evidence || {};
+    const timeline = buildReplayTimeline(deterministicEvidence);
+
+    return {
+        alert_id: normalized.alert_id,
+        pattern_type: deterministicEvidence.pattern_type || normalized.pattern_type,
+        replay: {
+            timeline,
+            storyline: timeline.map((step) => ({
+                step: step.index,
+                transaction_id: step.transaction_id,
+                edge: {
+                    from: step.from,
+                    to: step.to,
+                },
+                source: step.source,
+            })),
+            involved_accounts: Array.isArray(deterministicEvidence.involved_accounts)
+                ? deterministicEvidence.involved_accounts
+                : [],
+            transaction_ids: Array.isArray(deterministicEvidence.transaction_ids)
+                ? deterministicEvidence.transaction_ids
+                : [],
+            window_metadata: deterministicEvidence.window_metadata || null,
+        },
+    };
+}
+
 function createAlertRoutes({
     jwtMiddleware,
     sarService,
@@ -204,6 +345,48 @@ function createAlertRoutes({
         }
 
           return res.json(normalizeAlertPayload(alert));
+    });
+
+    router.get("/:id/explainability", jwtMiddleware, async (req, res) => {
+        const alert = await alertModel.findOne({ alert_id: req.params.id }).lean();
+        if (!alert) {
+            return res.status(404).json({ error: "not_found" });
+        }
+
+        if (auditLogger) {
+            await auditLogger.log({
+                userId: req.user.user_id,
+                userRole: req.user.role,
+                actionType: "ALERT_EXPLAINABILITY_VIEW",
+                resourceType: "ALERT",
+                resourceId: req.params.id,
+                outcome: "SUCCESS",
+                ipAddress: req.ip,
+            });
+        }
+
+        return res.json(buildExplainabilityPayload(alert));
+    });
+
+    router.get("/:id/evidence-replay", jwtMiddleware, async (req, res) => {
+        const alert = await alertModel.findOne({ alert_id: req.params.id }).lean();
+        if (!alert) {
+            return res.status(404).json({ error: "not_found" });
+        }
+
+        if (auditLogger) {
+            await auditLogger.log({
+                userId: req.user.user_id,
+                userRole: req.user.role,
+                actionType: "ALERT_EVIDENCE_REPLAY_VIEW",
+                resourceType: "ALERT",
+                resourceId: req.params.id,
+                outcome: "SUCCESS",
+                ipAddress: req.ip,
+            });
+        }
+
+        return res.json(buildEvidenceReplayPayload(alert));
     });
 
     router.post("/:id/sar", jwtMiddleware, async (req, res) => {
