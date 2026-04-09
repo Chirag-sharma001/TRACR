@@ -2,6 +2,27 @@ const express = require("express");
 const SystemConfig = require("../models/SystemConfig");
 const AuditLog = require("../models/AuditLog");
 const { requireRole } = require("../auth/RBACMiddleware");
+const ConfigGovernanceService = require("../governance/ConfigGovernanceService");
+
+function mapGovernanceError(error) {
+    switch (error?.message) {
+    case "metadata_required":
+    case "metadata_scope_required":
+    case "requested_config_required":
+    case "approver_required":
+    case "activator_required":
+        return 400;
+    case "self_approval_forbidden":
+        return 403;
+    case "change_not_found":
+        return 404;
+    case "approval_required":
+    case "invalid_transition":
+        return 409;
+    default:
+        return 500;
+    }
+}
 
 function createAdminRoutes({
     jwtMiddleware,
@@ -9,6 +30,7 @@ function createAdminRoutes({
     thresholdConfig,
     systemConfigModel = SystemConfig,
     auditLogModel = AuditLog,
+    configGovernanceService = new ConfigGovernanceService({ systemConfigModel }),
 } = {}) {
     const router = express.Router();
 
@@ -21,45 +43,63 @@ function createAdminRoutes({
         return res.json(configs);
     });
 
-    router.put("/config", async (req, res) => {
-        const updates = Array.isArray(req.body) ? req.body : [];
+    router.put("/config", async (_req, res) => {
+        return res.status(410).json({
+            error: "direct_config_mutation_disabled",
+            hint: "use_governance_lifecycle_endpoints",
+        });
+    });
 
-        for (const update of updates) {
-            const existing = await systemConfigModel.findOne({ config_key: update.config_key });
-            if (!existing) {
-                return res.status(404).json({ error: `config_not_found:${update.config_key}` });
-            }
+    router.post("/config/changes", async (req, res) => {
+        try {
+            const change = await configGovernanceService.submitChange({
+                requester_id: req.user.user_id,
+                reason: req.body?.reason,
+                change_scope: req.body?.change_scope,
+                detector_scope: req.body?.detector_scope,
+                risk_scope: req.body?.risk_scope,
+                requested_config: req.body?.requested_config,
+            });
 
-            const range = existing.valid_range || {};
-            if (Number.isFinite(range.min) && update.value < range.min) {
-                return res.status(400).json({ error: `value_below_min:${update.config_key}` });
-            }
-            if (Number.isFinite(range.max) && update.value > range.max) {
-                return res.status(400).json({ error: `value_above_max:${update.config_key}` });
-            }
-
-            const previous = existing.value;
-            existing.value = update.value;
-            existing.updated_by = req.user.user_id;
-            existing.updated_at = new Date();
-            await existing.save();
-
-            if (auditLogger) {
-                await auditLogger.log({
-                    userId: req.user.user_id,
-                    userRole: req.user.role,
-                    actionType: "THRESHOLD_CHANGE",
-                    resourceType: "SYSTEM_CONFIG",
-                    resourceId: existing.config_key,
-                    outcome: "SUCCESS",
-                    metadata: { previous, next: update.value },
-                    ipAddress: req.ip,
-                });
-            }
+            return res.status(201).json(change);
+        } catch (error) {
+            const code = mapGovernanceError(error);
+            return res.status(code).json({ error: error.message });
         }
+    });
 
-        await thresholdConfig.reload();
-        return res.json({ ok: true });
+    router.post("/config/changes/:id/approve", async (req, res) => {
+        try {
+            const change = await configGovernanceService.approveChange({
+                change_id: req.params.id,
+                approver_id: req.user.user_id,
+                note: req.body?.note || "",
+            });
+
+            return res.json(change);
+        } catch (error) {
+            const code = mapGovernanceError(error);
+            return res.status(code).json({ error: error.message });
+        }
+    });
+
+    router.post("/config/changes/:id/activate", async (req, res) => {
+        try {
+            const change = await configGovernanceService.activateApprovedChange({
+                change_id: req.params.id,
+                activator_id: req.user.user_id,
+                note: req.body?.note || "",
+            });
+
+            if (thresholdConfig && typeof thresholdConfig.reload === "function") {
+                await thresholdConfig.reload();
+            }
+
+            return res.json(change);
+        } catch (error) {
+            const code = mapGovernanceError(error);
+            return res.status(code).json({ error: error.message });
+        }
     });
 
     router.get("/audit", async (req, res) => {
