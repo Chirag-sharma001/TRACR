@@ -13,7 +13,7 @@ This roadmap evolves the existing AML backend into a precision-first, explainabl
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Governance, Contracts, and Observability** - Establish audit-ready config governance and detection quality telemetry. (completed 2026-04-09)
-- [ ] **Phase 2: Durable Transaction Processing** - Ensure accepted transactions are processed replay-safely with operational recovery controls.
+- [x] **Phase 2: Durable Transaction Processing** - Ensure accepted transactions are processed replay-safely with operational recovery controls. (completed 2026-04-09)
 - [ ] **Phase 3: Detection Precision and Confidence** - Improve alert quality with segment-aware scoring and confidence signaling.
 - [ ] **Phase 4: Explainability Interface and Evidence Replay** - Deliver explainable alert evidence and replayable suspicious movement context.
 - [ ] **Phase 5: Investigation Workflow Dashboard** - Formalize ownership, SLA escalation, and manager oversight for case handling.
@@ -47,9 +47,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md - Implement durable idempotency ledger and failure persistence for replay-safe ingest semantics
-- [ ] 02-02-PLAN.md - Add operator-triggered bounded replay APIs for failed-item listing and single-item reprocess
-- [ ] 02-03-PLAN.md - Expose admin durability telemetry for backlog and replay recovery health
+- [x] 02-01-PLAN.md - Implement durable idempotency ledger and failure persistence for replay-safe ingest semantics
+- [x] 02-02-PLAN.md - Add operator-triggered bounded replay APIs for failed-item listing and single-item reprocess
+- [x] 02-03-PLAN.md - Expose admin durability telemetry for backlog and replay recovery health
 
 ### Phase 3: Detection Precision and Confidence
 **Goal**: Analysts receive more trustworthy alerts through segment-aware scoring and explicit confidence indicators.
@@ -104,7 +104,7 @@ Phases execute in numeric order: 1 -> 1.1 -> 1.2 -> 2 -> 2.1 -> 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Governance, Contracts, and Observability | 3/3 | Complete    | 2026-04-09 |
-| 2. Durable Transaction Processing | 0/TBD | Not started | - |
+| 2. Durable Transaction Processing | 3/3 | Complete    | 2026-04-09 |
 | 3. Detection Precision and Confidence | 0/TBD | Not started | - |
 | 4. Explainability Interface and Evidence Replay | 0/TBD | Not started | - |
 | 5. Investigation Workflow Dashboard | 0/TBD | Not started | - |
