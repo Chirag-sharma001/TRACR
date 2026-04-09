@@ -130,6 +130,69 @@ class SARService {
             };
         });
     }
+
+    evaluateDraftQuality(draft = {}) {
+        const issues = [];
+
+        const subjectSummary = String(draft.subject_summary || "").trim();
+        const activityNarrative = String(draft.activity_narrative || "").trim();
+        const filingCategory = String(draft.recommended_filing_category || "").trim();
+        const timeline = Array.isArray(draft.transaction_timeline) ? draft.transaction_timeline : [];
+        const indicators = Array.isArray(draft.risk_indicators) ? draft.risk_indicators : [];
+
+        if (!subjectSummary || subjectSummary.length < 20) {
+            issues.push({
+                code: "subject_summary_insufficient",
+                severity: "ERROR",
+                message: "subject_summary must be at least 20 characters.",
+            });
+        }
+
+        if (!activityNarrative || activityNarrative.length < 60) {
+            issues.push({
+                code: "activity_narrative_insufficient",
+                severity: "ERROR",
+                message: "activity_narrative must be at least 60 characters.",
+            });
+        }
+
+        if (!filingCategory) {
+            issues.push({
+                code: "filing_category_missing",
+                severity: "ERROR",
+                message: "recommended_filing_category is required.",
+            });
+        }
+
+        if (timeline.length === 0) {
+            issues.push({
+                code: "timeline_missing",
+                severity: "ERROR",
+                message: "transaction_timeline must include at least one transaction reference.",
+            });
+        }
+
+        const hasSourceEvidence = indicators.some((indicator) => indicator && indicator.type === "SOURCE_EVIDENCE_TRACE");
+        if (!hasSourceEvidence) {
+            issues.push({
+                code: "evidence_trace_missing",
+                severity: "WARN",
+                message: "risk_indicators should include SOURCE_EVIDENCE_TRACE for filing defensibility.",
+            });
+        }
+
+        const qualityScore = Math.max(
+            0,
+            100 - (issues.filter((issue) => issue.severity === "ERROR").length * 20)
+            - (issues.filter((issue) => issue.severity === "WARN").length * 10)
+        );
+
+        return {
+            ready_to_file: issues.every((issue) => issue.severity !== "ERROR"),
+            quality_score: qualityScore,
+            issues,
+        };
+    }
 }
 
 module.exports = SARService;

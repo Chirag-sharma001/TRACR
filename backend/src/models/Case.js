@@ -96,6 +96,11 @@ const caseSchema = new mongoose.Schema(
       default: "ON_TRACK",
       index: true,
     },
+    sar_deadline_at: {
+      type: Date,
+      default: null,
+      index: true,
+    },
     no_file_rationale: {
       type: String,
       default: null,

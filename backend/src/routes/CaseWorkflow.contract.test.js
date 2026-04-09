@@ -18,6 +18,7 @@ function createMemoryCaseModel(initialCases = []) {
             sla_started_at: doc.sla_started_at || null,
             sla_due_at: doc.sla_due_at || null,
             escalation_state: doc.escalation_state || "ON_TRACK",
+            sar_deadline_at: doc.sar_deadline_at || null,
             no_file_rationale: doc.no_file_rationale || null,
             created_at: doc.created_at || new Date(),
             updated_at: doc.updated_at || new Date(),
@@ -41,7 +42,23 @@ function createMemoryCaseModel(initialCases = []) {
     };
 }
 
-function buildServer(caseModel) {
+function buildAlertModel(alerts = []) {
+    return {
+        findOne: ({ alert_id }) => ({
+            lean: async () => alerts.find((item) => item.alert_id === alert_id) || null,
+        }),
+    };
+}
+
+function buildSarDraftModel(drafts = []) {
+    return {
+        findOne: ({ sar_id }) => ({
+            lean: async () => drafts.find((item) => item.sar_id === sar_id) || null,
+        }),
+    };
+}
+
+function buildServer(caseModel, options = {}) {
     const jwtMiddleware = (req, _res, next) => {
         req.user = {
             user_id: req.headers["x-user-id"] || "investigator-1",
@@ -54,6 +71,9 @@ function buildServer(caseModel) {
         jwtMiddleware,
         auditLogger: { log: jest.fn(async () => { }) },
         caseModel,
+        alertModel: options.alertModel,
+        sarDraftModel: options.sarDraftModel,
+        sarService: options.sarService,
     });
 
     const app = createAppWithJson(router, "/api/cases");
@@ -221,6 +241,182 @@ describe("Case workflow contracts", () => {
             expect(missingRationale.body.error).toBe("no_file_rationale_required");
             expect(validRationale.status).toBe(200);
             expect(validRationale.body.no_file_rationale).toContain("payroll batch activity");
+        } finally {
+            await server.close();
+        }
+    });
+
+    test("case SAR draft generation is evidence-grounded and links draft to case", async () => {
+        const caseId = crypto.randomUUID();
+        const caseModel = createMemoryCaseModel([
+            {
+                case_id: caseId,
+                alert_id: "alert-6-1",
+                state: "ESCALATED",
+                state_history: [],
+            },
+        ]);
+
+        const sarService = {
+            generateSAR: jest.fn(async () => ({
+                sar_id: "sar-generated-1",
+                is_partial: false,
+                evidence_trace: {
+                    alert_id: "alert-6-1",
+                    case_id: caseId,
+                    account_id: "acct-6",
+                    transaction_ids: ["tx-a", "tx-b"],
+                },
+            })),
+            evaluateDraftQuality: jest.fn(),
+        };
+
+        const server = await buildServer(caseModel, {
+            alertModel: buildAlertModel([
+                {
+                    alert_id: "alert-6-1",
+                    subject_account_id: "acct-6",
+                    transaction_ids: ["tx-a", "tx-b"],
+                },
+            ]),
+            sarService,
+        });
+
+        try {
+            const response = await jsonRequest(server.baseUrl, `/api/cases/${caseId}/sar/draft`, {
+                method: "POST",
+                headers: { "x-role": "INVESTIGATOR", "x-user-id": "investigator-77" },
+                body: { account: { account_id: "acct-6" } },
+            });
+
+            expect(response.status).toBe(202);
+            expect(response.body.sar_id).toBe("sar-generated-1");
+            expect(response.body.evidence_trace).toEqual(
+                expect.objectContaining({
+                    alert_id: "alert-6-1",
+                    case_id: caseId,
+                })
+            );
+            expect(sarService.generateSAR).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    generatedBy: "investigator-77",
+                    caseId,
+                })
+            );
+
+            const persisted = await caseModel.findOne({ case_id: caseId });
+            expect(persisted.sar_draft_id).toBe("sar-generated-1");
+        } finally {
+            await server.close();
+        }
+    });
+
+    test("SAR quality check returns deterministic readiness and issue list", async () => {
+        const caseId = crypto.randomUUID();
+        const caseModel = createMemoryCaseModel([
+            {
+                case_id: caseId,
+                alert_id: "alert-6-2",
+                state: "ESCALATED",
+                sar_draft_id: "sar-qual-1",
+                state_history: [],
+            },
+        ]);
+
+        const sarService = {
+            generateSAR: jest.fn(),
+            evaluateDraftQuality: jest.fn(() => ({
+                ready_to_file: false,
+                quality_score: 60,
+                issues: [
+                    {
+                        code: "activity_narrative_insufficient",
+                        severity: "ERROR",
+                        message: "activity_narrative must be at least 60 characters.",
+                    },
+                ],
+            })),
+        };
+
+        const server = await buildServer(caseModel, {
+            sarDraftModel: buildSarDraftModel([
+                {
+                    sar_id: "sar-qual-1",
+                    subject_summary: "Short",
+                    activity_narrative: "Too short",
+                    transaction_timeline: [],
+                    risk_indicators: [],
+                    recommended_filing_category: "",
+                },
+            ]),
+            sarService,
+        });
+
+        try {
+            const response = await jsonRequest(server.baseUrl, `/api/cases/${caseId}/sar/quality-check`, {
+                method: "POST",
+                headers: { "x-role": "INVESTIGATOR", "x-user-id": "investigator-11" },
+            });
+
+            expect(response.status).toBe(200);
+            expect(response.body.sar_id).toBe("sar-qual-1");
+            expect(response.body.quality.ready_to_file).toBe(false);
+            expect(response.body.quality.quality_score).toBe(60);
+            expect(response.body.quality.issues).toHaveLength(1);
+            expect(sarService.evaluateDraftQuality).toHaveBeenCalledTimes(1);
+        } finally {
+            await server.close();
+        }
+    });
+
+    test("SAR deadline dashboard returns upcoming, at-risk, and breached buckets", async () => {
+        const now = Date.now();
+        const caseModel = createMemoryCaseModel([
+            {
+                case_id: "sar-breached",
+                alert_id: "alert-a",
+                state: "ESCALATED",
+                sar_deadline_at: new Date(now - 2 * 60 * 60 * 1000),
+                assigned_to: "investigator-a",
+            },
+            {
+                case_id: "sar-risk",
+                alert_id: "alert-b",
+                state: "UNDER_REVIEW",
+                sar_deadline_at: new Date(now + 6 * 60 * 60 * 1000),
+                assigned_to: "investigator-b",
+            },
+            {
+                case_id: "sar-upcoming",
+                alert_id: "alert-c",
+                state: "OPEN",
+                sar_deadline_at: new Date(now + 40 * 60 * 60 * 1000),
+                assigned_to: "investigator-c",
+            },
+            {
+                case_id: "sar-ontrack",
+                alert_id: "alert-d",
+                state: "OPEN",
+                sar_deadline_at: new Date(now + 9 * 24 * 60 * 60 * 1000),
+                assigned_to: "investigator-d",
+            },
+        ]);
+
+        const server = await buildServer(caseModel);
+
+        try {
+            const response = await jsonRequest(server.baseUrl, "/api/cases/sar/deadlines?limit=10", {
+                method: "GET",
+                headers: { "x-role": "COMPLIANCE_MANAGER" },
+            });
+
+            expect(response.status).toBe(200);
+            expect(response.body.summary.total_active).toBe(4);
+            expect(response.body.summary.breached_count).toBe(1);
+            expect(response.body.summary.at_risk_count).toBe(1);
+            expect(response.body.summary.upcoming_count).toBe(1);
+            expect(response.body.items[0].case_id).toBe("sar-breached");
+            expect(response.body.items.map((item) => item.case_id)).not.toContain("sar-ontrack");
         } finally {
             await server.close();
         }

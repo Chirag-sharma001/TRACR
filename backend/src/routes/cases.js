@@ -1,5 +1,7 @@
 const express = require("express");
 const Case = require("../models/Case");
+const Alert = require("../models/Alert");
+const SARDraft = require("../models/SARDraft");
 const { requireRole } = require("../auth/RBACMiddleware");
 const { assertHumanDecisionGate } = require("../sar/AiAdvisoryPolicy");
 
@@ -14,6 +16,9 @@ const ALLOWED_TRANSITIONS = {
 const REGULATED_TRANSITIONS = new Set(["CLOSED_SAR_FILED", "CLOSED_DISMISSED"]);
 const DEFAULT_SLA_HOURS = 24;
 const AT_RISK_WINDOW_MS = 4 * 60 * 60 * 1000;
+const DEFAULT_SAR_DEADLINE_DAYS = 30;
+const SAR_UPCOMING_WINDOW_MS = 72 * 60 * 60 * 1000;
+const SAR_AT_RISK_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 function computeEscalationState(slaStartedAt, slaDueAt, now = new Date()) {
     if (!slaStartedAt || !slaDueAt) {
@@ -63,6 +68,38 @@ function normalizeCaseEscalation(c, now = new Date()) {
     };
 }
 
+function resolveSarDeadlineAt(c) {
+    if (c?.sar_deadline_at) {
+        return new Date(c.sar_deadline_at);
+    }
+
+    const anchor = c?.created_at ? new Date(c.created_at) : new Date();
+    return new Date(anchor.getTime() + DEFAULT_SAR_DEADLINE_DAYS * 24 * 60 * 60 * 1000);
+}
+
+function computeSarDeadlineState(deadlineAt, now = new Date()) {
+    const deadlineMs = new Date(deadlineAt).getTime();
+    if (Number.isNaN(deadlineMs)) {
+        return "UPCOMING";
+    }
+
+    const remaining = deadlineMs - now.getTime();
+
+    if (remaining < 0) {
+        return "BREACHED";
+    }
+
+    if (remaining <= SAR_AT_RISK_WINDOW_MS) {
+        return "AT_RISK";
+    }
+
+    if (remaining <= SAR_UPCOMING_WINDOW_MS) {
+        return "UPCOMING";
+    }
+
+    return "ON_TRACK";
+}
+
 async function findCaseById(caseModel, caseId, { lean = false } = {}) {
     const query = caseModel.findOne({ case_id: caseId });
     if (lean && query && typeof query.lean === "function") {
@@ -79,9 +116,17 @@ async function listCases(caseModel, query = {}) {
     return result;
 }
 
-function createCaseRoutes({ jwtMiddleware, auditLogger = null, caseModel = Case } = {}) {
+function createCaseRoutes({
+    jwtMiddleware,
+    auditLogger = null,
+    caseModel = Case,
+    alertModel = Alert,
+    sarDraftModel = SARDraft,
+    sarService = null,
+} = {}) {
     const router = express.Router();
     const managerOnly = requireRole("MANAGER", "ADMIN", "COMPLIANCE_MANAGER")({ auditLogger });
+    const sarSensitiveRoles = requireRole("INVESTIGATOR", "MANAGER", "ADMIN", "COMPLIANCE_MANAGER")({ auditLogger });
 
     router.post("/", jwtMiddleware, async (req, res) => {
         const { alert_id, subject_account_id, assigned_to } = req.body || {};
@@ -95,6 +140,7 @@ function createCaseRoutes({ jwtMiddleware, auditLogger = null, caseModel = Case 
         const slaDueAt = hasAssignment
             ? new Date(now.getTime() + DEFAULT_SLA_HOURS * 60 * 60 * 1000)
             : null;
+        const sarDeadlineAt = new Date(now.getTime() + DEFAULT_SAR_DEADLINE_DAYS * 24 * 60 * 60 * 1000);
 
         const created = await caseModel.create({
             alert_id,
@@ -113,6 +159,7 @@ function createCaseRoutes({ jwtMiddleware, auditLogger = null, caseModel = Case 
             sla_started_at: slaStartedAt,
             sla_due_at: slaDueAt,
             escalation_state: computeEscalationState(slaStartedAt, slaDueAt, now),
+            sar_deadline_at: sarDeadlineAt,
         });
 
         if (auditLogger) {
@@ -189,6 +236,49 @@ function createCaseRoutes({ jwtMiddleware, auditLogger = null, caseModel = Case 
             generated_at: now.toISOString(),
             summary,
             backlog: triageRows.slice(0, limit),
+        });
+    });
+
+    router.get("/sar/deadlines", jwtMiddleware, managerOnly, async (req, res) => {
+        const now = new Date();
+        const limit = Math.min(200, Math.max(1, Number(req.query.limit || 50)));
+        const allCases = await listCases(caseModel, {});
+
+        const activeCases = allCases.filter((c) => c.state !== "CLOSED_SAR_FILED" && c.state !== "CLOSED_DISMISSED");
+        const items = activeCases
+            .map((c) => {
+                const deadlineAt = resolveSarDeadlineAt(c);
+                const deadlineState = computeSarDeadlineState(deadlineAt, now);
+                const remainingHours = Number(((deadlineAt.getTime() - now.getTime()) / 3600000).toFixed(2));
+
+                return {
+                    case_id: c.case_id,
+                    alert_id: c.alert_id,
+                    assigned_to: c.assigned_to,
+                    case_state: c.state,
+                    sar_deadline_at: deadlineAt,
+                    deadline_state: deadlineState,
+                    remaining_hours: remainingHours,
+                };
+            })
+            .filter((row) => row.deadline_state !== "ON_TRACK")
+            .sort((left, right) => {
+                const rank = { BREACHED: 0, AT_RISK: 1, UPCOMING: 2 };
+                if (rank[left.deadline_state] !== rank[right.deadline_state]) {
+                    return rank[left.deadline_state] - rank[right.deadline_state];
+                }
+                return left.remaining_hours - right.remaining_hours;
+            });
+
+        return res.json({
+            generated_at: now.toISOString(),
+            summary: {
+                total_active: activeCases.length,
+                breached_count: items.filter((row) => row.deadline_state === "BREACHED").length,
+                at_risk_count: items.filter((row) => row.deadline_state === "AT_RISK").length,
+                upcoming_count: items.filter((row) => row.deadline_state === "UPCOMING").length,
+            },
+            items: items.slice(0, limit),
         });
     });
 
@@ -363,6 +453,110 @@ function createCaseRoutes({ jwtMiddleware, auditLogger = null, caseModel = Case 
         }
 
         return res.status(201).json(c.notes[c.notes.length - 1]);
+    });
+
+    router.post("/:id/sar/draft", jwtMiddleware, sarSensitiveRoles, async (req, res) => {
+        if (!sarService || typeof sarService.generateSAR !== "function") {
+            return res.status(501).json({ error: "sar_service_unavailable" });
+        }
+
+        const c = await findCaseById(caseModel, req.params.id);
+        if (!c) {
+            return res.status(404).json({ error: "not_found" });
+        }
+
+        const alertQuery = alertModel.findOne({ alert_id: c.alert_id });
+        const alert = alertQuery && typeof alertQuery.lean === "function"
+            ? await alertQuery.lean()
+            : await alertQuery;
+        if (!alert) {
+            return res.status(404).json({ error: "alert_not_found" });
+        }
+
+        const draft = await sarService.generateSAR({
+            alert,
+            account: req.body?.account || null,
+            generatedBy: req.user.user_id,
+            caseId: c.case_id,
+        });
+
+        c.sar_draft_id = draft.sar_id;
+        if (!c.sar_deadline_at) {
+            c.sar_deadline_at = resolveSarDeadlineAt(c);
+        }
+        await c.save();
+
+        if (auditLogger) {
+            await auditLogger.log({
+                userId: req.user.user_id,
+                userRole: req.user.role,
+                actionType: "CASE_SAR_DRAFT_GENERATE",
+                resourceType: "CASE",
+                resourceId: c.case_id,
+                outcome: "SUCCESS",
+                metadata: {
+                    sar_id: draft.sar_id,
+                    alert_id: c.alert_id,
+                },
+                ipAddress: req.ip,
+            });
+        }
+
+        return res.status(202).json({
+            case_id: c.case_id,
+            sar_id: draft.sar_id,
+            is_partial: Boolean(draft.is_partial),
+            evidence_trace: draft.evidence_trace || null,
+        });
+    });
+
+    router.post("/:id/sar/quality-check", jwtMiddleware, sarSensitiveRoles, async (req, res) => {
+        if (!sarService || typeof sarService.evaluateDraftQuality !== "function") {
+            return res.status(501).json({ error: "sar_service_unavailable" });
+        }
+
+        const c = await findCaseById(caseModel, req.params.id);
+        if (!c) {
+            return res.status(404).json({ error: "not_found" });
+        }
+
+        if (!c.sar_draft_id) {
+            return res.status(400).json({ error: "sar_required" });
+        }
+
+        const draftQuery = sarDraftModel.findOne({ sar_id: c.sar_draft_id });
+        const draft = draftQuery && typeof draftQuery.lean === "function"
+            ? await draftQuery.lean()
+            : await draftQuery;
+        if (!draft) {
+            return res.status(404).json({ error: "sar_not_found" });
+        }
+
+        const quality = sarService.evaluateDraftQuality(draft);
+
+        if (auditLogger) {
+            await auditLogger.log({
+                userId: req.user.user_id,
+                userRole: req.user.role,
+                actionType: "CASE_SAR_QUALITY_CHECK",
+                resourceType: "CASE",
+                resourceId: c.case_id,
+                outcome: "SUCCESS",
+                metadata: {
+                    sar_id: c.sar_draft_id,
+                    ready_to_file: quality.ready_to_file,
+                    quality_score: quality.quality_score,
+                    issue_count: quality.issues.length,
+                },
+                ipAddress: req.ip,
+            });
+        }
+
+        return res.json({
+            case_id: c.case_id,
+            sar_id: c.sar_draft_id,
+            quality,
+        });
     });
 
     return router;
