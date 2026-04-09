@@ -4,6 +4,7 @@ const AuditLog = require("../models/AuditLog");
 const { requireRole } = require("../auth/RBACMiddleware");
 const ConfigGovernanceService = require("../governance/ConfigGovernanceService");
 const DetectionQualityMetrics = require("../observability/DetectionQualityMetrics");
+const DurabilityHealthMetrics = require("../observability/DurabilityHealthMetrics");
 
 function mapGovernanceError(error) {
     switch (error?.message) {
@@ -55,6 +56,7 @@ function createAdminRoutes({
     auditLogModel = AuditLog,
     configGovernanceService = new ConfigGovernanceService({ systemConfigModel }),
     detectionQualityMetricsService = new DetectionQualityMetrics(),
+    durabilityHealthMetricsService = new DurabilityHealthMetrics(),
 } = {}) {
     const router = express.Router();
 
@@ -200,6 +202,22 @@ function createAdminRoutes({
             return res.json(telemetry);
         } catch (error) {
             return res.status(500).json({ error: error.message || "telemetry_failed" });
+        }
+    });
+
+    router.get("/telemetry/processing-durability", async (req, res) => {
+        const dayWindowDays = Math.min(31, Math.max(1, Number(req.query.day_window_days || 7)));
+        const weekWindowWeeks = Math.min(12, Math.max(1, Number(req.query.week_window_weeks || 4)));
+
+        try {
+            const telemetry = await durabilityHealthMetricsService.getDurabilityHealth({
+                day_window_days: dayWindowDays,
+                week_window_weeks: weekWindowWeeks,
+            });
+
+            return res.json(telemetry);
+        } catch (_error) {
+            return res.status(500).json({ error: "telemetry_failed" });
         }
     });
 
