@@ -99,3 +99,38 @@ Phases execute in numeric order: 1 -> 1.1 -> 1.2 -> 2 -> 2.1 -> 3
 | 4. Explainability Interface and Evidence Replay | 0/TBD | Not started | - |
 | 5. Investigation Workflow Dashboard | 0/TBD | Not started | - |
 | 6. SAR Operations and Security Controls | 0/TBD | Not started | - |
+
+### Phase 7: For your AML problem, the best approach is not “agentic AI vs DFS.” It should be a hybrid system: DFS/graph algorithms for exact pattern detection, and AI/agentic AI for prioritization, explanation, investigation support, and SAR drafting. Graph analytics is especially strong for AML because money laundering is fundamentally a network problem, while explainable AI is important because AML teams need clear, auditable reasons for alerts.
+
+Best split of responsibilities
+Use DFS for things that must be exact:
+
+Circular fund flows.
+
+Short transaction loops.
+
+Time-bounded path search.
+
+Deterministic evidence for investigators.
+
+Use AI / agentic AI for things that are softer and broader:
+
+Behavioral anomaly scoring.
+
+Alert ranking.
+
+Case summarization.
+
+SAR drafting.
+
+Investigator workflow automation
+
+**Goal:** Analysts and investigators operate on a governed hybrid boundary where DFS-confirmed graph evidence remains deterministic truth and AI remains assistive, explainable, and reviewable.
+**Requirements**: PH7-HYBRID-BOUNDARY, PH7-XAI-PACKET, PH7-AI-GUARDRAILS
+**Depends on:** Phase 6
+**Plans:** 3/3 plans complete
+
+Plans:
+- [x] 07-01-PLAN.md - Enforce deterministic graph-truth boundary with candidate-vs-confirmed policy and evidence invariants
+- [x] 07-02-PLAN.md - Implement canonical explainability packet contract (evidence, decomposition, narrative mapping, confidence)
+- [x] 07-03-PLAN.md - Enforce advisory-only AI guardrails and human-decision gates for case/SAR actions

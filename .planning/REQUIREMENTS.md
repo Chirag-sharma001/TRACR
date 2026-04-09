@@ -40,6 +40,12 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **GOV-03**: Admin users can submit threshold/config changes through an approval and rollback-auditable workflow
 - [ ] **GOV-04**: Realtime consumers can only subscribe from approved origins and authorized channel scopes
 
+### Hybrid Boundary Controls
+
+- [ ] **PH7-HYBRID-BOUNDARY**: Exact graph typology truth claims require deterministic DFS/graph confirmation, while AI-only detections remain candidate signals until confirmed
+- [ ] **PH7-XAI-PACKET**: Every alert exposes a stable explainability packet with deterministic evidence context (when applicable), score decomposition, evidence-bound narrative rationale, and confidence level
+- [ ] **PH7-AI-GUARDRAILS**: AI outputs are advisory-only with mandatory human decision gates for regulated actions, and all AI-generated investigation/SAR content is traceable to source evidence
+
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
@@ -87,12 +93,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GOV-02 | Phase 6 | Pending |
 | GOV-03 | Phase 1 | Pending |
 | GOV-04 | Phase 6 | Pending |
+| PH7-HYBRID-BOUNDARY | Phase 7 | Pending |
+| PH7-XAI-PACKET | Phase 7 | Pending |
+| PH7-AI-GUARDRAILS | Phase 7 | Pending |
 
 **Coverage:**
-- v1 requirements: 18 total
-- Mapped to phases: 18
+- v1 requirements: 21 total
+- Mapped to phases: 21
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-09*
-*Last updated: 2026-04-10 after roadmap creation*
+*Last updated: 2026-04-10 after roadmap and Phase 07 requirement mapping update*
