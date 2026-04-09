@@ -299,22 +299,24 @@ await auditLogger.log({
 | A3 | New governance workflow can be added in `admin.js` without splitting into separate bounded context module in this phase | Architecture Patterns | Low: refactor may be needed if route complexity grows quickly |
 | A4 | No additional compliance retention policy applies to audit storage duration in v1 | Open Questions | High: could alter schema/index/storage requirements |
 
-## Open Questions
+## Open Questions Resolution
 
 1. **What is the canonical quality label source for DET-03 precision/drift?**
-   - What we know: Alert scores, tiers, and case/SAR entities exist [VERIFIED: codebase grep].
-   - What's unclear: Which disposition event is the governed ground truth label [ASSUMED].
-   - Recommendation: Lock a metric dictionary before coding telemetry endpoints.
+  - **Status:** RESOLVED.
+  - **Decision:** Phase 1 telemetry contract is governance-focused and must expose segmented quality/drift signals with lineage and windows; exact long-term label-calibration strategy is deferred to later detection-quality phases.
+  - **Evidence:** DET-03 is scoped in Phase 1 plans as contract delivery (segmentation + lineage + daily/weekly windows), not model-calibration redesign. [VERIFIED: .planning/phases/01-governance-contracts-and-observability/01-03-PLAN.md] [VERIFIED: .planning/ROADMAP.md]
 
 2. **How should config version lineage be represented?**
-   - What we know: `SystemConfig` currently stores key/value without explicit version field [VERIFIED: codebase grep].
-   - What's unclear: Per-key version vs global config snapshot version [ASSUMED].
-   - Recommendation: Prefer global `config_version_id` snapshots for DET-03 comparison consistency.
+  - **Status:** RESOLVED.
+  - **Decision:** Use global snapshot lineage identifiers (`config_version_id`, `published_change_id`) so governance comparisons stay consistent across detectors and risk segments.
+  - **Evidence:** Lineage fields are explicitly planned in lifecycle contracts and telemetry tasks. [VERIFIED: .planning/phases/01-governance-contracts-and-observability/01-01-PLAN.md] [VERIFIED: .planning/phases/01-governance-contracts-and-observability/01-03-PLAN.md]
 
 3. **What rollback granularity is required?**
-   - What we know: D-09 through D-11 require linked rollback with reason [VERIFIED: codebase grep].
-   - What's unclear: Full snapshot rollback vs key-scoped rollback [ASSUMED].
-   - Recommendation: Confirm with compliance stakeholder during discuss/planning gate.
+  - **Status:** RESOLVED.
+  - **Decision:** Full approved snapshot rollback with mandatory provenance (`rollback_reason`, `original_change_id`) and immutable audit event chain.
+  - **Evidence:** Governance API and rollback tasks explicitly require snapshot restoration plus provenance-linked audit records. [VERIFIED: .planning/phases/01-governance-contracts-and-observability/01-02-PLAN.md]
+
+All prior open questions are now resolved for planning scope.
 
 ## Environment Availability
 

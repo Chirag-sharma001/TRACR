@@ -39,9 +39,9 @@ created: 2026-04-09
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
 | 01-01-01 | 01 | 1 | GOV-03 | T-01-01 | Config publish requires explicit approval gate and cannot self-approve | unit/property | `cd backend && npx jest src/routes/AdminRoutes.property.test.js --runInBand` | ✅ | ⬜ pending |
-| 01-01-02 | 01 | 1 | GOV-03 | T-01-02 | Rollback requires reason + linked change ID and writes immutable audit trail | unit/integration | `cd backend && npx jest src/audit/AuditLogger.property.test.js --runInBand` | ❌ W0 | ⬜ pending |
-| 01-02-01 | 02 | 2 | DET-03 | T-01-03 | Drift/calibration telemetry segmented by detector, risk segment, and version lineage | unit/property | `cd backend && npx jest src/realtime/SocketGateway.test.js --runInBand` | ✅ | ⬜ pending |
-| 01-02-02 | 02 | 2 | DET-03 | T-01-04 | Daily + weekly observability windows are exposed and stable under config changes | integration | `cd backend && npx jest src/integration/ingestionToAlert.integration.test.js --runInBand` | ✅ | ⬜ pending |
+| 01-02-01 | 02 | 2 | GOV-03 | T-01-02 | Rollback requires reason + linked change ID and writes immutable audit trail | unit/integration | `cd backend && npx jest src/routes/AdminGovernance.property.test.js src/audit/AuditLogger.property.test.js --runInBand` | ❌ W0 | ⬜ pending |
+| 01-03-01 | 03 | 3 | DET-03 | T-01-03 | Drift/calibration telemetry segmented by detector, risk segment, and version lineage | unit/property | `cd backend && npx jest src/observability/DetectionQualityMetrics.test.js --runInBand` | ❌ W0 | ⬜ pending |
+| 01-03-02 | 03 | 3 | DET-03 | T-01-04 | Daily + weekly observability windows are exposed via a stable admin contract | contract | `cd backend && npx jest src/routes/AdminTelemetry.contract.test.js --runInBand` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
