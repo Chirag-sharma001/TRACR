@@ -150,4 +150,39 @@ describe("Alert explainability route contract", () => {
             await server.close();
         }
     });
+
+    test("POST /api/alerts/:id/sar denies non-privileged roles", async () => {
+        const jwtMiddleware = (req, _res, next) => {
+            req.user = { user_id: "analyst-1", role: "ANALYST" };
+            next();
+        };
+
+        const router = createAlertRoutes({
+            jwtMiddleware,
+            sarService: { generateSAR: jest.fn(async () => ({ sar_id: "sar-1", is_partial: false })) },
+            alertModel: makeModel([
+                {
+                    alert_id: "AL-RESTRICT-1",
+                    subject_account_id: "ACC-1",
+                    risk_tier: "HIGH",
+                },
+            ]),
+            auditLogger: { log: jest.fn(async () => { }) },
+        });
+
+        const app = createAppWithJson(router, "/api/alerts");
+        const server = await startServer(app);
+
+        try {
+            const response = await jsonRequest(server.baseUrl, "/api/alerts/AL-RESTRICT-1/sar", {
+                method: "POST",
+                body: { account: { account_id: "ACC-1" } },
+            });
+
+            expect(response.status).toBe(403);
+            expect(response.body).toEqual({ error: "forbidden" });
+        } finally {
+            await server.close();
+        }
+    });
 });

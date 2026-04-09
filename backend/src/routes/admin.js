@@ -1,10 +1,44 @@
 const express = require("express");
+const crypto = require("crypto");
 const SystemConfig = require("../models/SystemConfig");
 const AuditLog = require("../models/AuditLog");
 const { requireRole } = require("../auth/RBACMiddleware");
 const ConfigGovernanceService = require("../governance/ConfigGovernanceService");
 const DetectionQualityMetrics = require("../observability/DetectionQualityMetrics");
 const DurabilityHealthMetrics = require("../observability/DurabilityHealthMetrics");
+
+const SENSITIVE_AUDIT_ACTIONS = Object.freeze([
+    "SAR_GENERATE",
+    "CASE_SAR_DRAFT_GENERATE",
+    "CASE_SAR_QUALITY_CHECK",
+    "CASE_TRANSITION",
+    "AUTH_FAIL",
+]);
+
+function toImmutableView(item) {
+    const canonical = {
+        log_id: item.log_id,
+        user_id: item.user_id,
+        user_role: item.user_role,
+        action_type: item.action_type,
+        resource_type: item.resource_type,
+        resource_id: item.resource_id,
+        action_timestamp: item.action_timestamp,
+        outcome: item.outcome,
+        metadata: item.metadata,
+        ip_address: item.ip_address,
+    };
+
+    const immutableDigest = crypto
+        .createHash("sha256")
+        .update(JSON.stringify(canonical))
+        .digest("hex");
+
+    return {
+        ...canonical,
+        immutable_digest: immutableDigest,
+    };
+}
 
 function mapGovernanceError(error) {
     switch (error?.message) {
@@ -74,8 +108,44 @@ function createAdminRoutes({
     };
 
     const adminOnly = requireRole("ADMIN")({ auditLogger });
+    const complianceAuditAccess = requireRole("ADMIN", "COMPLIANCE_MANAGER")({ auditLogger });
 
-    router.use(jwtMiddleware, adminOnly);
+    router.use(jwtMiddleware);
+
+    router.get("/audit/sensitive", complianceAuditAccess, async (req, res) => {
+        const page = Math.max(1, Number(req.query.page || 1));
+        const limit = Math.min(200, Math.max(1, Number(req.query.limit || 50)));
+
+        const query = {
+            action_type: { $in: SENSITIVE_AUDIT_ACTIONS },
+        };
+
+        if (req.query.start_date || req.query.end_date) {
+            query.action_timestamp = {};
+            if (req.query.start_date) query.action_timestamp.$gte = new Date(req.query.start_date);
+            if (req.query.end_date) query.action_timestamp.$lte = new Date(req.query.end_date);
+        }
+
+        const [items, total] = await Promise.all([
+            auditLogModel
+                .find(query)
+                .sort({ action_timestamp: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit)
+                .lean(),
+            auditLogModel.countDocuments(query),
+        ]);
+
+        return res.json({
+            page,
+            limit,
+            total,
+            items: items.map(toImmutableView),
+            sensitive_actions: SENSITIVE_AUDIT_ACTIONS,
+        });
+    });
+
+    router.use(adminOnly);
 
     router.get("/config", async (req, res) => {
         const configs = await systemConfigModel.find({}).lean();

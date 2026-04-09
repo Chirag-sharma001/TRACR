@@ -1,5 +1,6 @@
 const express = require("express");
 const Alert = require("../models/Alert");
+const { requireRole } = require("../auth/RBACMiddleware");
 
 const CONFIDENCE_LEVELS = new Set(["LOW", "MEDIUM", "HIGH"]);
 const SCORE_DECOMPOSITION_DEFAULTS = Object.freeze({
@@ -286,6 +287,9 @@ function createAlertRoutes({
     alertModel = Alert,
 } = {}) {
     const router = express.Router();
+    const sarSensitiveRoles = requireRole("INVESTIGATOR", "MANAGER", "COMPLIANCE_MANAGER", "ADMIN")({
+        auditLogger,
+    });
 
     router.get("/", jwtMiddleware, async (req, res) => {
         const page = Math.max(1, Number(req.query.page || 1));
@@ -390,7 +394,7 @@ function createAlertRoutes({
         return res.json(buildEvidenceReplayPayload(alert));
     });
 
-    router.post("/:id/sar", jwtMiddleware, async (req, res) => {
+    router.post("/:id/sar", jwtMiddleware, sarSensitiveRoles, async (req, res) => {
         const alert = await alertModel.findOne({ alert_id: req.params.id }).lean();
         if (!alert) {
             return res.status(404).json({ error: "not_found" });

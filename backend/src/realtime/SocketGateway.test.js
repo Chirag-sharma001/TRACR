@@ -16,6 +16,26 @@ const { EventEmitter } = require("events");
 const { __ioMock } = require("socket.io");
 const SocketGateway = require("./SocketGateway");
 
+function buildSocket({
+    id = "socket-1",
+    origin = "http://allowed.local",
+    auth = { role: "INVESTIGATOR", channel_scopes: ["GRAPH_READ"] },
+} = {}) {
+    return {
+        id,
+        handshake: {
+            headers: { origin },
+            auth,
+        },
+        data: {},
+        on: jest.fn(),
+        emit: jest.fn(),
+        join: jest.fn(),
+        leave: jest.fn(),
+        disconnect: jest.fn(),
+    };
+}
+
 describe("SocketGateway", () => {
     beforeEach(() => {
         jest.useFakeTimers();
@@ -75,5 +95,50 @@ describe("SocketGateway", () => {
 
         gateway.stop();
         expect(__ioMock.close).toHaveBeenCalled();
+    });
+
+    test("rejects socket connections from unapproved origins", () => {
+        const emitter = new EventEmitter();
+        const gateway = new SocketGateway({
+            httpServer: {},
+            emitter,
+            alertModel: { aggregate: jest.fn(async () => []) },
+            approvedOrigins: ["http://allowed.local"],
+            corsOrigin: ["http://allowed.local"],
+        });
+
+        gateway.start();
+        const onConnection = __ioMock.on.mock.calls.find((call) => call[0] === "connection")[1];
+        const socket = buildSocket({ origin: "http://blocked.local" });
+        onConnection(socket);
+
+        expect(socket.emit).toHaveBeenCalledWith("connection:denied", { error: "forbidden_origin" });
+        expect(socket.disconnect).toHaveBeenCalledWith(true);
+
+        gateway.stop();
+    });
+
+    test("denies graph subscription without required channel scope", () => {
+        const emitter = new EventEmitter();
+        const gateway = new SocketGateway({
+            httpServer: {},
+            emitter,
+            alertModel: { aggregate: jest.fn(async () => []) },
+            approvedOrigins: ["http://allowed.local"],
+            corsOrigin: ["http://allowed.local"],
+        });
+
+        gateway.start();
+        const onConnection = __ioMock.on.mock.calls.find((call) => call[0] === "connection")[1];
+        const socket = buildSocket({ auth: { role: "INVESTIGATOR", channel_scopes: ["METRICS_READ"] } });
+        onConnection(socket);
+
+        const onSubscribe = socket.on.mock.calls.find((call) => call[0] === "graph:subscribe")[1];
+        onSubscribe({ accountId: "acct-1", channel_scope: "GRAPH_READ" });
+
+        expect(socket.emit).toHaveBeenCalledWith("graph:denied", { error: "scope_forbidden" });
+        expect(socket.join).not.toHaveBeenCalled();
+
+        gateway.stop();
     });
 });

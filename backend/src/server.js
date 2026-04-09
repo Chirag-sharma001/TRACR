@@ -108,10 +108,19 @@ async function createServer() {
         res.json({ ok: true });
     });
 
+    const approvedOrigins = String(
+        process.env.SOCKET_APPROVED_ORIGINS || process.env.CORS_ORIGIN || "http://localhost:3000"
+    )
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean);
+
     const socketGateway = new SocketGateway({
         httpServer,
         emitter: eventBus,
         sarQueue,
+        corsOrigin: approvedOrigins,
+        approvedOrigins,
     });
     socketGateway.start();
 
