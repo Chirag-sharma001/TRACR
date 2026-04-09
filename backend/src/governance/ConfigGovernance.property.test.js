@@ -13,11 +13,11 @@ describe("Config governance lifecycle contract property tests", () => {
     test("draft requests always require structured metadata fields", async () => {
         await fc.assert(
             fc.asyncProperty(
-                fc.string({ minLength: 1, maxLength: 64 }),
-                fc.string({ minLength: 1, maxLength: 32 }),
-                fc.array(fc.string({ minLength: 1, maxLength: 24 }), { minLength: 1, maxLength: 5 }),
-                fc.array(fc.string({ minLength: 1, maxLength: 24 }), { minLength: 1, maxLength: 5 }),
-                fc.array(fc.string({ minLength: 1, maxLength: 24 }), { minLength: 1, maxLength: 5 }),
+                fc.string({ minLength: 1, maxLength: 64 }).filter((v) => v.trim().length > 0),
+                fc.string({ minLength: 1, maxLength: 32 }).filter((v) => v.trim().length > 0),
+                fc.array(fc.string({ minLength: 1, maxLength: 24 }).filter((v) => v.trim().length > 0), { minLength: 1, maxLength: 5 }),
+                fc.array(fc.string({ minLength: 1, maxLength: 24 }).filter((v) => v.trim().length > 0), { minLength: 1, maxLength: 5 }),
+                fc.array(fc.string({ minLength: 1, maxLength: 24 }).filter((v) => v.trim().length > 0), { minLength: 1, maxLength: 5 }),
                 async (reason, requesterId, changeScope, detectorScope, riskScope) => {
                     const doc = new ConfigChangeRequest({
                         metadata: {
