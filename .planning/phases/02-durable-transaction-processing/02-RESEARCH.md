@@ -209,17 +209,19 @@ emitter.emit("transaction:saved", payload);
 | A3 | Process-local dedupe alternatives are insufficient for D-03 durability | Anti-Patterns | Could over-constrain design if hidden durable cache exists |
 | A4 | Exact publish dates for some packages remain unresolved from truncated registry output | Standard Stack | Version recency reporting may be partially incomplete |
 
-## Open Questions
+## Open Questions Resolution
 
 1. **What should be the canonical idempotency key source fields in inbound payload?**
-   - What we know: D-01 requires stable source identity + external transaction identity.
-   - What's unclear: Exact source field names and backward compatibility for existing clients.
-   - Recommendation: Lock key schema in Phase 2 plan before coding migrations.
+  - **Status:** RESOLVED.
+  - **Decision:** Canonical key is composed from stable source identity and external transaction identity (`source_system` + `external_tx_id`) with explicit normalization before persistence.
+  - **Evidence:** Context locks deterministic key strategy, and plans scope durability/idempotency implementation around this contract. [VERIFIED: .planning/phases/02-durable-transaction-processing/02-CONTEXT.md] [VERIFIED: .planning/phases/02-durable-transaction-processing/02-01-PLAN.md]
 
 2. **Should replay endpoints be admin-only or operations-role scoped?**
-   - What we know: D-07..D-09 require operator controls.
-   - What's unclear: Exact RBAC role mapping and audit requirements for replay actions.
-   - Recommendation: Reuse existing JWT/RBAC middleware conventions and add explicit audit events.
+  - **Status:** RESOLVED.
+  - **Decision:** Replay/list/reprocess controls are operations-role scoped with existing JWT/RBAC enforcement; audit logging is mandatory for replay actions.
+  - **Evidence:** Context mandates operator controls and planner maps these controls into dedicated replay endpoints with auditability requirements. [VERIFIED: .planning/phases/02-durable-transaction-processing/02-CONTEXT.md] [VERIFIED: .planning/phases/02-durable-transaction-processing/02-02-PLAN.md] [VERIFIED: .planning/phases/02-durable-transaction-processing/02-03-PLAN.md]
+
+All prior open questions are now resolved for planning scope.
 
 ## Environment Availability
 

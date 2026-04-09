@@ -76,7 +76,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | DET-01 | Phase 3 | Pending |
-| DET-02 | Phase 2 | Pending |
+| DET-02 | Phase 2 | Planned |
 | DET-03 | Phase 1 | Planned |
 | DET-04 | Phase 3 | Pending |
 | EXP-01 | Phase 4 | Pending |
@@ -104,4 +104,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-04-09*
-*Last updated: 2026-04-10 after roadmap and Phase 07 requirement mapping update*
+*Last updated: 2026-04-10 after Phase 02 executable planning and roadmap traceability update*

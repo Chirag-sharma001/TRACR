@@ -44,7 +44,12 @@ Plans:
   1. Re-submitting the same accepted transaction does not create duplicate downstream processing or duplicate alerts.
   2. Operators can replay accepted transaction events after failure windows without double-counting outcomes.
   3. Recovery tooling exposes failed items for controlled reprocessing and confirms end-to-end catch-up.
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 02-01-PLAN.md - Implement durable idempotency ledger and failure persistence for replay-safe ingest semantics
+- [ ] 02-02-PLAN.md - Add operator-triggered bounded replay APIs for failed-item listing and single-item reprocess
+- [ ] 02-03-PLAN.md - Expose admin durability telemetry for backlog and replay recovery health
 
 ### Phase 3: Detection Precision and Confidence
 **Goal**: Analysts receive more trustworthy alerts through segment-aware scoring and explicit confidence indicators.
