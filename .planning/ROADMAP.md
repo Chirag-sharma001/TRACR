@@ -59,7 +59,11 @@ Plans:
   1. Alert risk tiers reflect customer/account segment context rather than one global threshold behavior.
   2. Each alert includes a confidence indicator that distinguishes stronger from weaker evidence.
   3. Compliance manager can compare precision and drift outcomes before and after threshold updates.
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 03-01-PLAN.md - Implement deterministic confidence + segment/pattern/geo-aware threshold policy in scoring contracts
+- [ ] 03-02-PLAN.md - Expose config-version before/after precision comparison telemetry for governance dashboards
 
 ### Phase 4: Explainability Interface and Evidence Replay
 **Goal**: Investigators and analysts can inspect why an alert fired through structured decomposition, evidence paths, and timeline replay.
