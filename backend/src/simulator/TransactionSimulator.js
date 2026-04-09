@@ -2,12 +2,12 @@ const { randomUUID } = require("crypto");
 
 const TX_TYPES = ["WIRE", "ACH", "CASH", "CRYPTO"];
 const CHANNELS = ["MOBILE", "BRANCH", "ATM", "ONLINE"];
-const COUNTRIES = ["US", "IN", "GB", "SG", "AE", "MX", "DE", "JP"];
+const COUNTRIES = ["US", "IN", "GB", "SG", "AE", "MX", "DE", "JP", "IR", "KP", "MM"];
 
 class TransactionSimulator {
     constructor({
         ingestUrl = "http://localhost:3000/api/transactions/ingest",
-        tps = 10,
+        tps = 2,
         smurfingEnabled = true,
         circularEnabled = true,
         circularWindowHours = 72,
@@ -19,11 +19,21 @@ class TransactionSimulator {
         this.circularEnabled = circularEnabled;
         this.circularWindowHours = circularWindowHours;
         this.logger = logger;
+        this.token = null;
 
         this.interval = null;
     }
 
+    setToken(token) {
+        this.token = token;
+    }
+
+
     start() {
+        if (this.interval) {
+            this.logger.warn("simulator_already_running");
+            return;
+        }
         const periodMs = Math.max(1, Math.floor(1000 / this.tps));
         this.interval = setInterval(() => {
             this.emitTick().catch((error) => {
@@ -41,30 +51,37 @@ class TransactionSimulator {
 
     async emitTick() {
         const tx = this.generateTransaction();
-        await this.#postTransaction(tx);
+        await this.postTransaction(tx);
 
         if (this.smurfingEnabled && Math.random() < 0.03) {
             const cluster = this.generateSmurfingCluster();
             for (const item of cluster) {
-                await this.#postTransaction(item);
+                await this.postTransaction(item);
             }
         }
 
         if (this.circularEnabled && Math.random() < 0.02) {
             const chain = this.generateCircularChain();
             for (const item of chain) {
-                await this.#postTransaction(item);
+                await this.postTransaction(item);
             }
         }
     }
 
     generateTransaction() {
         const amount = this.#sampleAmount();
+        const sender = this.#accountId();
+        let receiver = this.#accountId();
+        
+        // Prevent Self-Loop
+        while (receiver === sender) {
+            receiver = this.#accountId();
+        }
 
         return {
             transaction_id: randomUUID(),
-            sender_account_id: this.#accountId(),
-            receiver_account_id: this.#accountId(),
+            sender_account_id: sender,
+            receiver_account_id: receiver,
             amount,
             currency: "USD",
             timestamp: new Date().toISOString(),
@@ -83,36 +100,32 @@ class TransactionSimulator {
     generateSmurfingCluster() {
         const count = this.#randInt(3, 15);
         const sender = this.#accountId();
-        const receiverPool = Array.from({ length: this.#randInt(2, 6) }, () => this.#accountId());
+        const receiverPool = Array.from({ length: this.#randInt(2, 6) }, () => {
+            let id = this.#accountId();
+            while (id === sender) id = this.#accountId();
+            return id;
+        });
         const start = Date.now();
 
         const cluster = [];
         for (let i = 0; i < count; i += 1) {
-            let receiverId;
-            if (i === 0) {
-                receiverId = receiverPool[0];
-            } else if (i === 1) {
-                receiverId = receiverPool[1];
-            } else {
-                receiverId = this.#pick(receiverPool);
-            }
-
             cluster.push({
                 transaction_id: randomUUID(),
                 sender_account_id: sender,
-                receiver_account_id: receiverId,
-                amount: this.#randInt(1000, 9999),
+                receiver_account_id: this.#pick(receiverPool),
+                amount: this.#randInt(8500, 9950),
                 currency: "USD",
                 timestamp: new Date(start + this.#randInt(0, 60 * 60 * 1000)).toISOString(),
                 transaction_type: this.#pick(TX_TYPES),
                 geolocation: {
                     sender_country: this.#pick(COUNTRIES),
-                    receiver_country: this.#pick(COUNTRIES),
+                    receiver_country: this.#pick(["IR", "KP", "MM"]),
                 },
                 channel: this.#pick(CHANNELS),
                 device_id: this.#deviceId(),
                 is_synthetic: true,
                 pattern_tag: "SMURFING",
+                metadata: { ground_truth: "SMURFING_TARGET" },
             });
         }
 
@@ -120,9 +133,18 @@ class TransactionSimulator {
     }
 
     generateCircularChain() {
-        const length = this.#randInt(2, 6);
-        const nodes = Array.from({ length }, () => this.#accountId());
-        nodes.push(nodes[0]);
+        const length = this.#randInt(3, 6); // Min 3 for a proper cycle
+        const nodes = [];
+        const used = new Set();
+        
+        while (nodes.length < length) {
+            const id = this.#accountId();
+            if (!used.has(id)) {
+                nodes.push(id);
+                used.add(id);
+            }
+        }
+        nodes.push(nodes[0]); // Cycle back
 
         const start = Date.now();
         const maxOffsetMs = this.circularWindowHours * 60 * 60 * 1000;
@@ -133,35 +155,60 @@ class TransactionSimulator {
                 transaction_id: randomUUID(),
                 sender_account_id: nodes[i],
                 receiver_account_id: nodes[i + 1],
-                amount: this.#randInt(500, 25000),
+                amount: 15000,
                 currency: "USD",
                 timestamp: new Date(start + this.#randInt(0, maxOffsetMs)).toISOString(),
                 transaction_type: this.#pick(TX_TYPES),
                 geolocation: {
                     sender_country: this.#pick(COUNTRIES),
-                    receiver_country: this.#pick(COUNTRIES),
+                    receiver_country: this.#pick(["IR", "KP", "MM"]),
                 },
                 channel: this.#pick(CHANNELS),
                 device_id: this.#deviceId(),
                 is_synthetic: true,
                 pattern_tag: "CIRCULAR_TRADING",
+                metadata: { ground_truth: "CIRCULAR_TARGET" },
+                channel: this.#pick(CHANNELS),
+                device_id: this.#deviceId(),
+                is_synthetic: true,
+                pattern_tag: "CIRCULAR_TRADING",
+                metadata: { ground_truth: "CIRCULAR_TRADING_TARGET" },
             });
         }
 
         return chain;
     }
 
-    async #postTransaction(tx) {
-        const response = await fetch(this.ingestUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(tx),
-        });
+    async postTransaction(tx) {
+        const headers = { "Content-Type": "application/json" };
+        if (this.token) {
+            headers["Authorization"] = `Bearer ${this.token}`;
+        }
 
-        if (!response.ok) {
-            this.logger.warn("simulator_post_failed", {
+        try {
+            // Added timeout to prevent simulator hanging on slow backend
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 5000);
+
+            const response = await fetch(this.ingestUrl, {
+                method: "POST",
+                headers,
+                body: JSON.stringify(tx),
+                signal: controller.signal
+            });
+
+            clearTimeout(timeout);
+
+            if (!response.ok) {
+                this.logger.warn("simulator_post_failed", {
+                    transaction_id: tx.transaction_id,
+                    status: response.status,
+                });
+            }
+        } catch (err) {
+            this.logger.error("simulator_post_error", {
                 transaction_id: tx.transaction_id,
-                status: response.status,
+                message: err.message
             });
         }
     }

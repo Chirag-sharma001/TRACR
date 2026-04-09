@@ -30,12 +30,24 @@ import random
 import uuid
 from datetime import datetime, timezone, timedelta
 
+from dotenv import load_dotenv
 import bcrypt
 from pymongo import MongoClient
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
+load_dotenv()  # loads .env file from current directory
+
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/intelligent_aml")
+
+# Ensure the URI includes the database name for get_default_database()
+if "mongodb+srv" in MONGO_URI and "/intelligent_aml" not in MONGO_URI:
+    # Insert DB name before query params
+    if "?" in MONGO_URI:
+        MONGO_URI = MONGO_URI.replace("?", "intelligent_aml?", 1)
+    else:
+        MONGO_URI = MONGO_URI.rstrip("/") + "/intelligent_aml"
+
 client    = MongoClient(MONGO_URI)
 db        = client.get_default_database()
 

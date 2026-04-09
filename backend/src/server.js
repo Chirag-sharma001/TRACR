@@ -34,6 +34,8 @@ const {
     createGraphRoutes,
     createCaseRoutes,
     createAdminRoutes,
+    createSimulatorRoutes,
+    createSARRoutes,
 } = require("./routes");
 
 const SocketGateway = require("./realtime/SocketGateway");
@@ -42,7 +44,11 @@ async function createServer() {
     const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/intelligent_aml";
     const port = Number(process.env.PORT || 3000);
 
-    await mongoose.connect(mongoUri);
+    await mongoose.connect(mongoUri, {
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+    });
 
     await seedDefaultConfig();
     await thresholdConfig.initialize();
@@ -103,6 +109,8 @@ async function createServer() {
             thresholdConfig,
         })
     );
+    app.use("/api/simulator", createSimulatorRoutes({ jwtMiddleware, auditLogger }));
+    app.use("/api/sar", createSARRoutes({ jwtMiddleware, auditLogger }));
 
     app.get("/health", (_req, res) => {
         res.json({ ok: true });

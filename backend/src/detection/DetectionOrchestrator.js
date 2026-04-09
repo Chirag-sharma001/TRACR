@@ -120,6 +120,7 @@ class DetectionOrchestrator {
             cycle_signals: cycles,
             smurfing_signal: smurfingSignal,
             behavioral_signal: behavioralSignal,
+            ground_truth: tx.metadata?.ground_truth,
             analyzed_at: new Date().toISOString(),
         };
 

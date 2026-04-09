@@ -135,7 +135,7 @@ class GraphManager {
 
         return {
             nodes: Array.from(nodes).map((id) => ({
-                nodeId: id,
+                id,
                 metadata: this.getNodeMeta(id),
             })),
             edges: Array.from(edgeMap.values()),

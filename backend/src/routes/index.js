@@ -12,4 +12,6 @@ module.exports = {
     createGraphRoutes,
     createCaseRoutes,
     createAdminRoutes,
+    createSimulatorRoutes: require("./simulator"),
+    createSARRoutes: require("./sar"),
 };

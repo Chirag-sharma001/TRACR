@@ -84,6 +84,10 @@ const transactionSchema = new mongoose.Schema(
       enum: ["SMURFING", "CIRCULAR_TRADING", null],
       default: null,
     },
+    metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
     ingested_at: {
       type: Date,
       default: Date.now,

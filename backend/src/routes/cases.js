@@ -57,6 +57,19 @@ function createCaseRoutes({ jwtMiddleware, auditLogger = null, caseModel = Case 
         return res.json(c);
     });
 
+    router.get("/", jwtMiddleware, async (req, res) => {
+        const page = Math.max(1, Number(req.query.page || 1));
+        const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20)));
+        const items = await caseModel
+            .find({})
+            .sort({ created_at: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .lean();
+        return res.json({ items });
+    });
+
+
     router.patch("/:id/state", jwtMiddleware, async (req, res) => {
         const c = await caseModel.findOne({ case_id: req.params.id });
         if (!c) {

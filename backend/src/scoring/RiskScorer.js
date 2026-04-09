@@ -59,6 +59,7 @@ class RiskScorer {
             cycle_detail: detectionResult.cycle_signals?.[0] || null,
             smurfing_detail: detectionResult.smurfing_signal || null,
             behavioral_detail: detectionResult.behavioral_signal || null,
+            verified: !!detectionResult.ground_truth,
         };
 
         const saved = await this.alertModel.create(alertDoc);

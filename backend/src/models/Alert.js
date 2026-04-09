@@ -60,6 +60,10 @@ const alertSchema = new mongoose.Schema(
       type: scoreBreakdownSchema,
       required: true,
     },
+    verified: {
+      type: Boolean,
+      default: false,
+    },
     cycle_detail: {
       type: mongoose.Schema.Types.Mixed,
       default: null,

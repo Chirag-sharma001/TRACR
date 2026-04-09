@@ -48,5 +48,9 @@ module.exports = {
     device_id: { type: "string", minLength: 1 },
     is_synthetic: { type: "boolean" },
     pattern_tag: { enum: ["SMURFING", "CIRCULAR_TRADING", null] },
+    metadata: {
+      type: "object",
+      additionalProperties: true,
+    },
   },
 };

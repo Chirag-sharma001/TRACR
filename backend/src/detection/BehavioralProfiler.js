@@ -12,13 +12,8 @@ class BehavioralProfiler {
     }
 
     async initializeBaseline(accountId) {
-        const existing = await this.accountModel.findOne({ account_id: accountId }).lean();
-        if (existing) {
-            return existing;
-        }
-
         const now = new Date();
-        await this.accountModel.create({
+        const initialDoc = {
             account_id: accountId,
             first_seen: now,
             last_seen: now,
@@ -38,9 +33,13 @@ class BehavioralProfiler {
                 history_days: 0,
                 low_confidence: true,
             },
-        });
+        };
 
-        return this.accountModel.findOne({ account_id: accountId }).lean();
+        return this.accountModel.findOneAndUpdate(
+            { account_id: accountId },
+            { $setOnInsert: initialDoc },
+            { upsert: true, new: true }
+        ).lean();
     }
 
     async updateBaseline(accountId) {
