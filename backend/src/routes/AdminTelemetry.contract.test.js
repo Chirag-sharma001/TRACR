@@ -1,7 +1,7 @@
 const createAdminRoutes = require("./admin");
 const { createAppWithJson, startServer, jsonRequest } = require("../testUtils/httpHarness");
 
-function createHarness({ role = "ADMIN", telemetryResult } = {}) {
+function createHarness({ role = "ADMIN", telemetryResult, comparisonError = null } = {}) {
     const detectionQualityMetricsService = {
         getDetectionQualityTelemetry: jest.fn(async () => telemetryResult || {
             generated_at: "2026-04-10T12:00:00.000Z",
@@ -36,7 +36,12 @@ function createHarness({ role = "ADMIN", telemetryResult } = {}) {
                 ],
             },
         }),
-        getDetectionQualityComparisonTelemetry: jest.fn(async () => ({
+        getDetectionQualityComparisonTelemetry: jest.fn(async () => {
+            if (comparisonError) {
+                throw comparisonError;
+            }
+
+            return {
             generated_at: "2026-04-10T12:00:00.000Z",
             selectors: {
                 before: { config_version_id: "cfg-v41", published_change_id: null },
@@ -62,7 +67,8 @@ function createHarness({ role = "ADMIN", telemetryResult } = {}) {
                 },
             },
             delta: { total: 3 },
-        })),
+            };
+        }),
     };
 
     const jwtMiddleware = (req, _res, next) => {
@@ -188,6 +194,23 @@ describe("Admin DET-03 telemetry contract", () => {
             expect(response.status).toBe(403);
             expect(response.body).toEqual({ error: "forbidden" });
             expect(detectionQualityMetricsService.getDetectionQualityComparisonTelemetry).not.toHaveBeenCalled();
+        } finally {
+            await server.close();
+        }
+    });
+
+    test("GET /telemetry/detection-quality/compare returns telemetry_failed on service errors", async () => {
+        const { app } = createHarness({ comparisonError: new Error("aggregation_boom") });
+        const server = await startServer(app);
+
+        try {
+            const response = await jsonRequest(
+                server.baseUrl,
+                "/api/admin/telemetry/detection-quality/compare?before_config_version_id=cfg-v41&after_config_version_id=cfg-v42"
+            );
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual({ error: "telemetry_failed" });
         } finally {
             await server.close();
         }

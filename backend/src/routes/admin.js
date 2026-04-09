@@ -60,6 +60,19 @@ function createAdminRoutes({
 } = {}) {
     const router = express.Router();
 
+    const normalizeSelector = (value) => {
+        if (value === undefined || value === null) {
+            return null;
+        }
+
+        const normalized = String(value).trim();
+        if (!normalized) {
+            return null;
+        }
+
+        return normalized.slice(0, 128);
+    };
+
     const adminOnly = requireRole("ADMIN")({ auditLogger });
 
     router.use(jwtMiddleware, adminOnly);
@@ -202,6 +215,38 @@ function createAdminRoutes({
             return res.json(telemetry);
         } catch (error) {
             return res.status(500).json({ error: error.message || "telemetry_failed" });
+        }
+    });
+
+    router.get("/telemetry/detection-quality/compare", async (req, res) => {
+        const beforeConfigVersionId = normalizeSelector(req.query.before_config_version_id);
+        const afterConfigVersionId = normalizeSelector(req.query.after_config_version_id);
+        const beforePublishedChangeId = normalizeSelector(req.query.before_published_change_id);
+        const afterPublishedChangeId = normalizeSelector(req.query.after_published_change_id);
+        const dayWindowDays = Math.min(31, Math.max(1, Number(req.query.day_window_days || 7)));
+        const weekWindowWeeks = Math.min(12, Math.max(1, Number(req.query.week_window_weeks || 4)));
+
+        if (!beforeConfigVersionId || !afterConfigVersionId) {
+            return res.status(400).json({ error: "comparison_selectors_required" });
+        }
+
+        try {
+            const telemetry = await detectionQualityMetricsService.getDetectionQualityComparisonTelemetry({
+                before_config_version_id: beforeConfigVersionId,
+                after_config_version_id: afterConfigVersionId,
+                before_published_change_id: beforePublishedChangeId,
+                after_published_change_id: afterPublishedChangeId,
+                day_window_days: dayWindowDays,
+                week_window_weeks: weekWindowWeeks,
+            });
+
+            return res.json(telemetry);
+        } catch (error) {
+            if (error?.message === "comparison_selectors_required") {
+                return res.status(400).json({ error: error.message });
+            }
+
+            return res.status(500).json({ error: "telemetry_failed" });
         }
     });
 
