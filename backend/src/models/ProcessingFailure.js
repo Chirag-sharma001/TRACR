@@ -33,6 +33,21 @@ const processingFailureSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: null,
     },
+    replayed_at: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    replayed_by_operator_id: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    replay_outcome: {
+      type: String,
+      default: null,
+      trim: true,
+    },
   },
   {
     versionKey: false,

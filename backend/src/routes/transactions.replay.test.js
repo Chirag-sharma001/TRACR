@@ -52,15 +52,15 @@ function createHarness({ role = "ADMIN" } = {}) {
 }
 
 describe("Transactions replay route contracts (RED)", () => {
-  test("ReplayService interface exposes list/reprocess methods", async () => {
+  test("ReplayService interface exposes list/reprocess methods", () => {
     const service = new ReplayService({
       failureModel: {},
       ledgerModel: {},
       repository: {},
     });
 
-    await expect(service.listFailedItems({})).rejects.toThrow("not_implemented");
-    await expect(service.reprocessFailedItem({})).rejects.toThrow("not_implemented");
+    expect(typeof service.listFailedItems).toBe("function");
+    expect(typeof service.reprocessFailedItem).toBe("function");
   });
 
   test("GET /recovery/failed enforces bounded from/to window and snake_case response", async () => {
@@ -158,6 +158,43 @@ describe("Transactions replay route contracts (RED)", () => {
 
       expect(nonOperator.status).toBe(400);
       expect(nonOperator.body).toEqual({ error: "operator_trigger_required" });
+    } finally {
+      await server.close();
+    }
+  });
+
+  test("POST /recovery/:failure_id/reprocess returns idempotent no-op for terminal records", async () => {
+    const { app, replayService } = createHarness({ role: "ADMIN" });
+    replayService.reprocessFailedItem.mockResolvedValueOnce({
+      failure_id: "507f1f77bcf86cd799439011",
+      transaction_id: "tx-1",
+      idempotency_key: "idem-1",
+      status: "noop",
+      duplicate_suppressed: true,
+      replayed_at: "2026-01-01T12:06:00.000Z",
+      operator_id: "operator-1",
+    });
+
+    const server = await startServer(app);
+
+    try {
+      const response = await jsonRequest(
+        server.baseUrl,
+        "/api/transactions/recovery/507f1f77bcf86cd799439011/reprocess",
+        {
+          method: "POST",
+          body: { trigger: "operator" },
+        }
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(
+        expect.objectContaining({
+          status: "noop",
+          duplicate_suppressed: true,
+          operator_id: "operator-1",
+        })
+      );
     } finally {
       await server.close();
     }
