@@ -258,6 +258,7 @@ function buildEvidenceReplayPayload(alert) {
         pattern_type: deterministicEvidence.pattern_type || normalized.pattern_type,
         replay: {
             timeline,
+            sequence_source: timeline.length > 0 ? timeline[0].source : "none",
             storyline: timeline.map((step) => ({
                 step: step.index,
                 transaction_id: step.transaction_id,

@@ -67,6 +67,7 @@ describe("Alert evidence replay route contract", () => {
                 pattern_type: "CIRCULAR_TRADING",
                 replay: expect.objectContaining({
                     timeline: expect.any(Array),
+                    sequence_source: "sequence",
                     involved_accounts: expect.arrayContaining(["A1", "A2", "A3"]),
                 }),
             }));
@@ -117,6 +118,7 @@ describe("Alert evidence replay route contract", () => {
             expect(response.status).toBe(200);
 
             const timeline = response.body.replay.timeline;
+            expect(response.body.replay.sequence_source).toBe("transaction_ids");
             expect(timeline.map((step) => step.transaction_id)).toEqual(["t-1", "t-2", "t-3"]);
             expect(timeline.every((step) => step.source === "transaction_ids")).toBe(true);
         } finally {
