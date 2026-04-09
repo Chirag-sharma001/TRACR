@@ -1,5 +1,6 @@
 const express = require("express");
 const Case = require("../models/Case");
+const { assertHumanDecisionGate } = require("../sar/AiAdvisoryPolicy");
 
 const ALLOWED_TRANSITIONS = {
     OPEN: ["UNDER_REVIEW"],
@@ -8,6 +9,8 @@ const ALLOWED_TRANSITIONS = {
     CLOSED_SAR_FILED: [],
     CLOSED_DISMISSED: [],
 };
+
+const REGULATED_TRANSITIONS = new Set(["CLOSED_SAR_FILED", "CLOSED_DISMISSED"]);
 
 function createCaseRoutes({ jwtMiddleware, auditLogger = null, caseModel = Case } = {}) {
     const router = express.Router();
@@ -63,7 +66,7 @@ function createCaseRoutes({ jwtMiddleware, auditLogger = null, caseModel = Case 
             return res.status(404).json({ error: "not_found" });
         }
 
-        const { to_state, reason_code } = req.body || {};
+        const { to_state, reason_code, decision_source } = req.body || {};
         if (!to_state || !reason_code) {
             return res.status(400).json({ error: "missing_fields" });
         }
@@ -75,6 +78,17 @@ function createCaseRoutes({ jwtMiddleware, auditLogger = null, caseModel = Case 
 
         if (to_state === "CLOSED_SAR_FILED" && !c.sar_draft_id) {
             return res.status(400).json({ error: "sar_required" });
+        }
+
+        if (REGULATED_TRANSITIONS.has(to_state)) {
+            try {
+                assertHumanDecisionGate({
+                    action: `CASE_${to_state}`,
+                    decision_source,
+                });
+            } catch (error) {
+                return res.status(error.status || 400).json({ error: error.code || "human_decision_required" });
+            }
         }
 
         const fromState = c.state;
