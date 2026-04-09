@@ -20,14 +20,18 @@ Detect suspicious financial activity quickly and explain it clearly enough that 
 - ✓ SAR draft generation pipeline exists (queue + Gemini integration + formatter + persistence) — existing
 - ✓ Admin threshold config and audit log retrieval endpoints exist — existing
 - ✓ Realtime push channel exists for alert and metrics updates via Socket.IO — existing
+- ✓ Precision and confidence upgrades shipped (segment-aware thresholds + deterministic confidence) — v1.0
+- ✓ Explainability and evidence replay contracts shipped for alert investigation workflows — v1.0
+- ✓ Investigation ownership/SLA workflows and oversight controls shipped — v1.0
+- ✓ SAR deadline support, quality checks, and confidentiality hardening shipped — v1.0
+- ✓ Hybrid deterministic graph-truth boundary and advisory-only AI guardrails shipped — v1.0
 
 ### Active
 
-- [ ] Improve alert precision while preserving core pattern coverage for smurfing, cycles, and behavioral anomalies
-- [ ] Ensure end-to-end alert generation and explainability within under-1-minute operational latency target
-- [ ] Strengthen explainability outputs for balanced personas (analyst, investigator, manager): score breakdown, transaction-path evidence, narrative rationale, and SAR-ready context
-- [ ] Harden production-readiness of existing pipeline (security controls, reliability, and scaling-aware architecture decisions)
-- [ ] Keep and evolve current modules (ingestion, detection, scoring, SAR, auth/admin/case APIs) under a hybrid implementation strategy
+- [ ] Validate operational SLOs in production-like load tests (p95 ingestion-to-alert latency and replay recovery duration)
+- [ ] Add analyst feedback loop and false-positive analytics to prioritize precision tuning opportunities
+- [ ] Introduce governed typology update workflow and what-if threshold simulation for compliance teams
+- [ ] Define v1.1 scope for advanced intelligence requirements (`INT-01` to `INT-05`)
 
 ### Out of Scope
 
@@ -43,6 +47,7 @@ Detect suspicious financial activity quickly and explain it clearly enough that 
 - Configurable scoring and thresholds are already modeled and admin-manageable via `SystemConfig`
 - Test suite includes unit, integration, and property-based tests (Jest + fast-check), with strong domain invariant coverage
 - Primary challenge from project brief: static-rule AML systems struggle against evolving laundering behavior; system must detect layered, networked anomalies and explain findings clearly
+- Milestone v1.0 (phases 1-7, 17 plans) shipped on 2026-04-10 with archived roadmap/requirements artifacts
 
 ## Constraints
 
@@ -56,11 +61,25 @@ Detect suspicious financial activity quickly and explain it clearly enough that 
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Build on existing backend with a hybrid strategy | Substantial AML pipeline already exists and is test-covered | — Pending |
-| Optimize v1 for precision over recall | Analyst trust and actionable alert quality are primary launch drivers | — Pending |
-| Treat under-1-minute alerting as real-time target | Operationally meaningful SLA for financial monitoring workflows | — Pending |
-| Include all four explainability outputs in v1 (breakdown, path evidence, narrative, SAR context) | Explainability is a central requirement across balanced personas | — Pending |
-| Use balanced MVP persona strategy | Project needs analyst + investigator + manager utility from first release | — Pending |
+| Build on existing backend with a hybrid strategy | Substantial AML pipeline already exists and is test-covered | ✓ Implemented across v1.0 |
+| Optimize v1 for precision over recall | Analyst trust and actionable alert quality are primary launch drivers | ✓ Implemented with segment-aware thresholds |
+| Treat under-1-minute alerting as real-time target | Operationally meaningful SLA for financial monitoring workflows | ⚠ Revisit with production load validation |
+| Include all four explainability outputs in v1 (breakdown, path evidence, narrative, SAR context) | Explainability is a central requirement across balanced personas | ✓ Implemented in phases 4 and 7 |
+| Use balanced MVP persona strategy | Project needs analyst + investigator + manager utility from first release | ✓ Implemented across investigation and SAR workflows |
+
+## Current State
+
+- Milestone `v1.0` shipped on 2026-04-10.
+- Archived artifacts:
+	- `.planning/milestones/v1.0-ROADMAP.md`
+	- `.planning/milestones/v1.0-REQUIREMENTS.md`
+- Active planning files have been reset for next-milestone workflow.
+
+## Next Milestone Goals
+
+1. Define `v1.1` outcome metrics and requirement set.
+2. Run milestone audit retro to capture gaps/risks from shipped v1.0.
+3. Prioritize advanced intelligence features while preserving deterministic evidence integrity.
 
 ## Evolution
 
@@ -80,4 +99,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-09 after initialization*
+*Last updated: 2026-04-10 after v1.0 milestone completion*
