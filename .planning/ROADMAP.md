@@ -1,0 +1,101 @@
+# Roadmap: Intelligent AML Framework
+
+## Overview
+
+This roadmap evolves the existing AML backend into a precision-first, explainable, and operationally reliable platform. The sequence starts with governance and observability controls, hardens end-to-end processing durability, improves detector quality, then delivers explainability and investigation workflows before finishing with SAR and security-grade operations.
+
+## Phases
+
+**Phase Numbering:**
+- Integer phases (1, 2, 3): Planned milestone work
+- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+
+Decimal phases appear between their surrounding integers in numeric order.
+
+- [ ] **Phase 1: Governance, Contracts, and Observability** - Establish audit-ready config governance and detection quality telemetry.
+- [ ] **Phase 2: Durable Transaction Processing** - Ensure accepted transactions are processed replay-safely with operational recovery controls.
+- [ ] **Phase 3: Detection Precision and Confidence** - Improve alert quality with segment-aware scoring and confidence signaling.
+- [ ] **Phase 4: Explainability Interface and Evidence Replay** - Deliver explainable alert evidence and replayable suspicious movement context.
+- [ ] **Phase 5: Investigation Workflow Dashboard** - Formalize ownership, SLA escalation, and manager oversight for case handling.
+- [ ] **Phase 6: SAR Operations and Security Controls** - Complete SAR decision support with immutable auditability and scoped confidentiality.
+
+## Phase Details
+
+### Phase 1: Governance, Contracts, and Observability
+**Goal**: Compliance and admin users can govern detection policy changes and track quality drift with full auditability.
+**Depends on**: Nothing (first phase)
+**Requirements**: DET-03, GOV-03
+**Success Criteria** (what must be TRUE):
+  1. Compliance manager can retrieve calibration and drift signals segmented by detector/risk context.
+  2. Admin can submit threshold/config changes that require explicit approval before activation.
+  3. Admin can roll back a published config change, and the audit trail records requester, approver, and rollback reason.
+**Plans**: TBD
+
+### Phase 2: Durable Transaction Processing
+**Goal**: Operations can trust that every accepted transaction is processed exactly-once semantically, including replay and recovery scenarios.
+**Depends on**: Phase 1
+**Requirements**: DET-02
+**Success Criteria** (what must be TRUE):
+  1. Re-submitting the same accepted transaction does not create duplicate downstream processing or duplicate alerts.
+  2. Operators can replay accepted transaction events after failure windows without double-counting outcomes.
+  3. Recovery tooling exposes failed items for controlled reprocessing and confirms end-to-end catch-up.
+**Plans**: TBD
+
+### Phase 3: Detection Precision and Confidence
+**Goal**: Analysts receive more trustworthy alerts through segment-aware scoring and explicit confidence indicators.
+**Depends on**: Phase 2
+**Requirements**: DET-01, DET-04
+**Success Criteria** (what must be TRUE):
+  1. Alert risk tiers reflect customer/account segment context rather than one global threshold behavior.
+  2. Each alert includes a confidence indicator that distinguishes stronger from weaker evidence.
+  3. Compliance manager can compare precision and drift outcomes before and after threshold updates.
+**Plans**: TBD
+
+### Phase 4: Explainability Interface and Evidence Replay
+**Goal**: Investigators and analysts can inspect why an alert fired through structured decomposition, evidence paths, and timeline replay.
+**Depends on**: Phase 3
+**Requirements**: EXP-01, EXP-02, EXP-03, EXP-04
+**Success Criteria** (what must be TRUE):
+  1. Analyst can open an alert interface that shows score decomposition across cycle, smurfing, behavioral, and geographic components.
+  2. Investigator can inspect linked account/edge path evidence with ordered transaction sequence context.
+  3. Investigator can read a narrative rationale grounded in the same evidence packet used for scoring.
+  4. Investigator can replay suspicious movement in a timeline view to reconstruct event progression.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 5: Investigation Workflow Dashboard
+**Goal**: Investigation operations run with clear ownership, SLA-aware escalation, and manager oversight.
+**Depends on**: Phase 4
+**Requirements**: WFL-01, WFL-02, WFL-03
+**Success Criteria** (what must be TRUE):
+  1. Investigator can assign or claim alert ownership and SLA timers start automatically.
+  2. Escalation states update when SLA thresholds are crossed, and managers can triage from an oversight dashboard.
+  3. Case progression to no-file outcomes requires a mandatory documented rationale.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 6: SAR Operations and Security Controls
+**Goal**: SAR decisions are evidence-grounded, deadline-aware, and protected by strict confidentiality and audit controls.
+**Depends on**: Phase 5
+**Requirements**: SAR-01, SAR-02, SAR-03, GOV-01, GOV-02, GOV-04
+**Success Criteria** (what must be TRUE):
+  1. Investigator can generate SAR drafts directly grounded in linked alert and case evidence.
+  2. Compliance team can identify SAR windows that are upcoming, at risk, or breached.
+  3. Investigator can run SAR narrative quality and completeness checks before filing decisions.
+  4. Audit/compliance users can retrieve immutable logs of sensitive SAR and case decision actions.
+  5. Only authorized roles from approved origins and channel scopes can access SAR-sensitive data and realtime subscriptions.
+**Plans**: TBD
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 1 -> 1.1 -> 1.2 -> 2 -> 2.1 -> 3
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. Governance, Contracts, and Observability | 0/TBD | Not started | - |
+| 2. Durable Transaction Processing | 0/TBD | Not started | - |
+| 3. Detection Precision and Confidence | 0/TBD | Not started | - |
+| 4. Explainability Interface and Evidence Replay | 0/TBD | Not started | - |
+| 5. Investigation Workflow Dashboard | 0/TBD | Not started | - |
+| 6. SAR Operations and Security Controls | 0/TBD | Not started | - |

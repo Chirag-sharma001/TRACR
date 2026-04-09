@@ -69,30 +69,30 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DET-01 | TBD | Pending |
-| DET-02 | TBD | Pending |
-| DET-03 | TBD | Pending |
-| DET-04 | TBD | Pending |
-| EXP-01 | TBD | Pending |
-| EXP-02 | TBD | Pending |
-| EXP-03 | TBD | Pending |
-| EXP-04 | TBD | Pending |
-| WFL-01 | TBD | Pending |
-| WFL-02 | TBD | Pending |
-| WFL-03 | TBD | Pending |
-| SAR-01 | TBD | Pending |
-| SAR-02 | TBD | Pending |
-| SAR-03 | TBD | Pending |
-| GOV-01 | TBD | Pending |
-| GOV-02 | TBD | Pending |
-| GOV-03 | TBD | Pending |
-| GOV-04 | TBD | Pending |
+| DET-01 | Phase 3 | Pending |
+| DET-02 | Phase 2 | Pending |
+| DET-03 | Phase 1 | Pending |
+| DET-04 | Phase 3 | Pending |
+| EXP-01 | Phase 4 | Pending |
+| EXP-02 | Phase 4 | Pending |
+| EXP-03 | Phase 4 | Pending |
+| EXP-04 | Phase 4 | Pending |
+| WFL-01 | Phase 5 | Pending |
+| WFL-02 | Phase 5 | Pending |
+| WFL-03 | Phase 5 | Pending |
+| SAR-01 | Phase 6 | Pending |
+| SAR-02 | Phase 6 | Pending |
+| SAR-03 | Phase 6 | Pending |
+| GOV-01 | Phase 6 | Pending |
+| GOV-02 | Phase 6 | Pending |
+| GOV-03 | Phase 1 | Pending |
+| GOV-04 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 18 total
-- Mapped to phases: 0
-- Unmapped: 18 ⚠️ (will be resolved in roadmap step)
+- Mapped to phases: 18
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-09*
-*Last updated: 2026-04-09 after initial definition*
+*Last updated: 2026-04-10 after roadmap creation*
