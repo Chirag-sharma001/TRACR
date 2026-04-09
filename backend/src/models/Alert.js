@@ -79,6 +79,40 @@ const explainabilityPacketSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const precisionContextSchema = new mongoose.Schema(
+  {
+    segment: {
+      type: String,
+      default: "default",
+    },
+    pattern_type: {
+      type: String,
+      enum: ["CIRCULAR_TRADING", "SMURFING", "BEHAVIORAL_ANOMALY"],
+      default: "BEHAVIORAL_ANOMALY",
+    },
+    geo_band: {
+      type: String,
+      enum: ["LOW", "MEDIUM", "HIGH"],
+      default: "LOW",
+    },
+    threshold_source: {
+      type: String,
+      default: "safe_defaults",
+    },
+    thresholds: {
+      high: {
+        type: Number,
+        default: 70,
+      },
+      medium: {
+        type: Number,
+        default: 40,
+      },
+    },
+  },
+  { _id: false }
+);
+
 const alertSchema = new mongoose.Schema(
   {
     alert_id: {
@@ -133,6 +167,11 @@ const alertSchema = new mongoose.Schema(
     },
     explainability_packet: {
       type: explainabilityPacketSchema,
+      required: true,
+      default: () => ({}),
+    },
+    precision_context: {
+      type: precisionContextSchema,
       required: true,
       default: () => ({}),
     },

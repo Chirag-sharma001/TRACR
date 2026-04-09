@@ -396,11 +396,15 @@ describe("RiskScorer property tests", () => {
                         score_weight_behavioral: 0,
                         score_weight_geo: 0,
                         customer_segment_default: "retail",
+                        "risk_tier_thresholds.segment.retail.pattern.CIRCULAR_TRADING.geo.HIGH": {
+                            high: 60,
+                            medium: 35,
+                        },
                     };
                     return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : fallback;
                 },
             },
-            geoRiskEvaluator: { score: () => 0 },
+            geoRiskEvaluator: { score: () => 15 },
             emitter: { emit: jest.fn() },
         });
 

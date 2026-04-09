@@ -1,18 +1,21 @@
 const eventBus = require("../events/eventBus");
 const Alert = require("../models/Alert");
 const GeoRiskEvaluator = require("./GeoRiskEvaluator");
+const SegmentAwareThresholdPolicy = require("../policy/SegmentAwareThresholdPolicy");
 
 class RiskScorer {
     constructor({
         alertModel = Alert,
         thresholdConfig,
         geoRiskEvaluator = null,
+        thresholdPolicy = null,
         emitter = eventBus,
         logger = console,
     } = {}) {
         this.alertModel = alertModel;
         this.thresholdConfig = thresholdConfig;
         this.geoRiskEvaluator = geoRiskEvaluator || new GeoRiskEvaluator({ thresholdConfig });
+        this.thresholdPolicy = thresholdPolicy || new SegmentAwareThresholdPolicy({ thresholdConfig, logger });
         this.emitter = emitter;
         this.logger = logger;
     }
@@ -39,9 +42,16 @@ class RiskScorer {
             normalizedGeoScore * weights.geographic_weight;
 
         const riskScore = Math.max(0, Math.min(100, composite));
-        const riskTier = this.#classifyTier(riskScore);
 
         const patternType = this.#inferPatternType(detectionResult);
+        const geoBand = this.#resolveGeoBand(geoScore);
+        const segment = this.#resolveSegment(detectionResult);
+        const policyResolution = this.thresholdPolicy.resolveWithContext({
+            segment,
+            patternType,
+            geoBand,
+        });
+        const riskTier = this.#classifyTier(riskScore, policyResolution.thresholds);
         const involvedAccounts = this.#extractInvolvedAccounts(detectionResult);
         const transactionIds = this.#extractTransactionIds(detectionResult);
         const scoreBreakdown = {
@@ -101,6 +111,13 @@ class RiskScorer {
             xai_narrative: xaiNarrative,
             config_version_id: lineage.config_version_id,
             published_change_id: lineage.published_change_id,
+            precision_context: {
+                segment: policyResolution.segment,
+                pattern_type: policyResolution.pattern_type,
+                geo_band: policyResolution.geo_band,
+                threshold_source: policyResolution.threshold_source,
+                thresholds: policyResolution.thresholds,
+            },
         };
 
         const saved = await this.alertModel.create(alertDoc);
@@ -144,11 +161,11 @@ class RiskScorer {
         return Math.min(100, score);
     }
 
-    #classifyTier(score) {
-        if (score >= 70) {
+    #classifyTier(score, thresholds = { high: 70, medium: 40 }) {
+        if (score >= thresholds.high) {
             return "HIGH";
         }
-        if (score >= 40) {
+        if (score >= thresholds.medium) {
             return "MEDIUM";
         }
         return "LOW";
@@ -202,6 +219,28 @@ class RiskScorer {
         }
 
         return Array.from(ids);
+    }
+
+    #resolveSegment(detectionResult) {
+        if (typeof detectionResult.customer_segment === "string" && detectionResult.customer_segment.trim().length > 0) {
+            return detectionResult.customer_segment.trim().toLowerCase();
+        }
+
+        if (typeof detectionResult.account_segment === "string" && detectionResult.account_segment.trim().length > 0) {
+            return detectionResult.account_segment.trim().toLowerCase();
+        }
+
+        return this.#getConfigValue("customer_segment_default", "default");
+    }
+
+    #resolveGeoBand(geoScore) {
+        if (geoScore >= 10) {
+            return "HIGH";
+        }
+        if (geoScore >= 5) {
+            return "MEDIUM";
+        }
+        return "LOW";
     }
 
     #buildDeterministicEvidence({ detectionResult, patternType, involvedAccounts, transactionIds }) {
