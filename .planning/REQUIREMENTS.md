@@ -29,16 +29,16 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### SAR Operations
 
-- [ ] **SAR-01**: Investigator can generate SAR drafts that are grounded in alert and case evidence
-- [ ] **SAR-02**: Compliance team can track SAR timeliness windows and identify imminent or breached deadlines
-- [ ] **SAR-03**: Investigator can run narrative quality/completeness checks before SAR filing decisions
+- [x] **SAR-01**: Investigator can generate SAR drafts that are grounded in alert and case evidence
+- [x] **SAR-02**: Compliance team can track SAR timeliness windows and identify imminent or breached deadlines
+- [x] **SAR-03**: Investigator can run narrative quality/completeness checks before SAR filing decisions
 
 ### Security & Governance
 
-- [ ] **GOV-01**: Compliance/audit users can retrieve immutable logs of sensitive actions and decision changes
-- [ ] **GOV-02**: Authorized roles can access SAR-sensitive data with least-privilege confidentiality controls enforced
+- [x] **GOV-01**: Compliance/audit users can retrieve immutable logs of sensitive actions and decision changes
+- [x] **GOV-02**: Authorized roles can access SAR-sensitive data with least-privilege confidentiality controls enforced
 - [ ] **GOV-03**: Admin users can submit threshold/config changes through an approval and rollback-auditable workflow
-- [ ] **GOV-04**: Realtime consumers can only subscribe from approved origins and authorized channel scopes
+- [x] **GOV-04**: Realtime consumers can only subscribe from approved origins and authorized channel scopes
 
 ### Hybrid Boundary Controls
 
@@ -86,13 +86,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WFL-01 | Phase 5 | Completed (2026-04-10) |
 | WFL-02 | Phase 5 | Completed (2026-04-10) |
 | WFL-03 | Phase 5 | Completed (2026-04-10) |
-| SAR-01 | Phase 6 | Pending |
-| SAR-02 | Phase 6 | Pending |
-| SAR-03 | Phase 6 | Pending |
-| GOV-01 | Phase 6 | Pending |
-| GOV-02 | Phase 6 | Pending |
+| SAR-01 | Phase 6 | Completed (2026-04-10) |
+| SAR-02 | Phase 6 | Completed (2026-04-10) |
+| SAR-03 | Phase 6 | Completed (2026-04-10) |
+| GOV-01 | Phase 6 | Completed (2026-04-10) |
+| GOV-02 | Phase 6 | Completed (2026-04-10) |
 | GOV-03 | Phase 1 | Planned |
-| GOV-04 | Phase 6 | Pending |
+| GOV-04 | Phase 6 | Completed (2026-04-10) |
 | PH7-HYBRID-BOUNDARY | Phase 7 | Pending |
 | PH7-XAI-PACKET | Phase 7 | Pending |
 | PH7-AI-GUARDRAILS | Phase 7 | Pending |
