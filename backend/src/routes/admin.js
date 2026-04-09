@@ -7,26 +7,26 @@ const DetectionQualityMetrics = require("../observability/DetectionQualityMetric
 
 function mapGovernanceError(error) {
     switch (error?.message) {
-    case "metadata_required":
-    case "metadata_scope_required":
-    case "requested_config_required":
-    case "approver_required":
-    case "activator_required":
-    case "rollback_actor_required":
-    case "rollback_reason_required":
-    case "original_change_id_required":
-        return 400;
-    case "self_approval_forbidden":
-        return 403;
-    case "change_not_found":
-    case "original_change_not_found":
-        return 404;
-    case "approval_required":
-    case "invalid_transition":
-    case "original_change_not_approved":
-        return 409;
-    default:
-        return 500;
+        case "metadata_required":
+        case "metadata_scope_required":
+        case "requested_config_required":
+        case "approver_required":
+        case "activator_required":
+        case "rollback_actor_required":
+        case "rollback_reason_required":
+        case "original_change_id_required":
+            return 400;
+        case "self_approval_forbidden":
+            return 403;
+        case "change_not_found":
+        case "original_change_not_found":
+            return 404;
+        case "approval_required":
+        case "invalid_transition":
+        case "original_change_not_approved":
+            return 409;
+        default:
+            return 500;
     }
 }
 
