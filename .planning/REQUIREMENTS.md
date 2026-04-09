@@ -16,10 +16,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Explainability
 
-- [ ] **EXP-01**: Analyst can view per-alert score decomposition across cycle, smurfing, behavioral, and geographic components
-- [ ] **EXP-02**: Investigator can view transaction-path evidence (accounts, edges, sequence/timeline) supporting each alert
-- [ ] **EXP-03**: Investigator can view a narrative rationale summarizing why the alert was triggered
-- [ ] **EXP-04**: Investigator can replay suspicious movement using a graph storyline/timeline view
+- [x] **EXP-01**: Analyst can view per-alert score decomposition across cycle, smurfing, behavioral, and geographic components
+- [x] **EXP-02**: Investigator can view transaction-path evidence (accounts, edges, sequence/timeline) supporting each alert
+- [x] **EXP-03**: Investigator can view a narrative rationale summarizing why the alert was triggered
+- [x] **EXP-04**: Investigator can replay suspicious movement using a graph storyline/timeline view
 
 ### Investigation Workflow
 
@@ -79,10 +79,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DET-02 | Phase 2 | Planned |
 | DET-03 | Phase 1 | Planned |
 | DET-04 | Phase 3 | Pending |
-| EXP-01 | Phase 4 | Pending |
-| EXP-02 | Phase 4 | Pending |
-| EXP-03 | Phase 4 | Pending |
-| EXP-04 | Phase 4 | Pending |
+| EXP-01 | Phase 4 | Completed (2026-04-10) |
+| EXP-02 | Phase 4 | Completed (2026-04-10) |
+| EXP-03 | Phase 4 | Completed (2026-04-10) |
+| EXP-04 | Phase 4 | Completed (2026-04-10) |
 | WFL-01 | Phase 5 | Pending |
 | WFL-02 | Phase 5 | Pending |
 | WFL-03 | Phase 5 | Pending |
@@ -104,4 +104,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-04-09*
-*Last updated: 2026-04-10 after Phase 02 executable planning and roadmap traceability update*
+*Last updated: 2026-04-10 after Phase 04 execution and verification*

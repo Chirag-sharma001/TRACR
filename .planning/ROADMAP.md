@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Governance, Contracts, and Observability** - Establish audit-ready config governance and detection quality telemetry. (completed 2026-04-09)
 - [x] **Phase 2: Durable Transaction Processing** - Ensure accepted transactions are processed replay-safely with operational recovery controls. (completed 2026-04-09)
 - [x] **Phase 3: Detection Precision and Confidence** - Improve alert quality with segment-aware scoring and confidence signaling. (completed 2026-04-09)
-- [ ] **Phase 4: Explainability Interface and Evidence Replay** - Deliver explainable alert evidence and replayable suspicious movement context.
+- [x] **Phase 4: Explainability Interface and Evidence Replay** - Deliver explainable alert evidence and replayable suspicious movement context. (completed 2026-04-10)
 - [ ] **Phase 5: Investigation Workflow Dashboard** - Formalize ownership, SLA escalation, and manager oversight for case handling.
 - [ ] **Phase 6: SAR Operations and Security Controls** - Complete SAR decision support with immutable auditability and scoped confidentiality.
 
@@ -74,8 +74,12 @@ Plans:
   2. Investigator can inspect linked account/edge path evidence with ordered transaction sequence context.
   3. Investigator can read a narrative rationale grounded in the same evidence packet used for scoring.
   4. Investigator can replay suspicious movement in a timeline view to reconstruct event progression.
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
+
+Plans:
+- [x] 04-01-PLAN.md - Expose alert explainability endpoint with decomposition, evidence path, and narrative contracts
+- [x] 04-02-PLAN.md - Expose deterministic evidence replay timeline endpoint with ordered storyline context
 
 ### Phase 5: Investigation Workflow Dashboard
 **Goal**: Investigation operations run with clear ownership, SLA-aware escalation, and manager oversight.
@@ -103,14 +107,14 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 1.1 -> 1.2 -> 2 -> 2.1 -> 3
+Phases execute in numeric order: 1 -> 1.1 -> 1.2 -> 2 -> 2.1 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Governance, Contracts, and Observability | 3/3 | Complete    | 2026-04-09 |
 | 2. Durable Transaction Processing | 3/3 | Complete    | 2026-04-09 |
 | 3. Detection Precision and Confidence | 2/2 | Complete    | 2026-04-09 |
-| 4. Explainability Interface and Evidence Replay | 0/TBD | Not started | - |
+| 4. Explainability Interface and Evidence Replay | 2/2 | Complete    | 2026-04-10 |
 | 5. Investigation Workflow Dashboard | 0/TBD | Not started | - |
 | 6. SAR Operations and Security Controls | 0/TBD | Not started | - |
 
