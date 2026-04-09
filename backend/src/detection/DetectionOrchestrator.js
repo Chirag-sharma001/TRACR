@@ -1,5 +1,9 @@
 const eventBus = require("../events/eventBus");
 const Account = require("../models/Account");
+const {
+    confirmDeterministicGraphHit,
+    markAiCandidate,
+} = require("../policy/HybridBoundaryPolicy");
 
 class DetectionOrchestrator {
     constructor({
@@ -10,6 +14,10 @@ class DetectionOrchestrator {
         riskScorer = null,
         emitter = eventBus,
         accountModel = Account,
+        hybridBoundaryPolicy = {
+            confirmDeterministicGraphHit,
+            markAiCandidate,
+        },
         thresholdConfig = null,
         logger = console,
     }) {
@@ -20,6 +28,7 @@ class DetectionOrchestrator {
         this.riskScorer = riskScorer;
         this.emitter = emitter;
         this.accountModel = accountModel;
+        this.hybridBoundaryPolicy = hybridBoundaryPolicy;
         this.thresholdConfig = thresholdConfig;
         this.logger = logger;
 
@@ -40,7 +49,7 @@ class DetectionOrchestrator {
 
         if (this.riskScorer && typeof this.riskScorer.compute === "function") {
             const scoredAlert = await this.riskScorer.compute(result, tx.geolocation);
-            this.emitter.emit("alert:new", scoredAlert);
+            this.emitter.emit("alert:new", this.#attachHybridBoundary(scoredAlert, result.hybrid_boundary));
         }
 
         return result;
@@ -114,12 +123,25 @@ class DetectionOrchestrator {
             ),
         ]);
 
+        const aiCandidate = tx.ai_graph_candidate
+            ? this.hybridBoundaryPolicy.markAiCandidate(tx.ai_graph_candidate)
+            : null;
+        const graphPatternBoundary = this.hybridBoundaryPolicy.confirmDeterministicGraphHit({
+            cycleSignals: cycles,
+            aiCandidate,
+            maxWindowHours: cycleWindowHours,
+        });
+
         const result = {
             transaction_id: tx.transaction_id,
             subject_account_id: tx.sender_account_id,
             cycle_signals: cycles,
             smurfing_signal: smurfingSignal,
             behavioral_signal: behavioralSignal,
+            hybrid_boundary: {
+                deterministic_truth_required: true,
+                graph_pattern: graphPatternBoundary,
+            },
             analyzed_at: new Date().toISOString(),
         };
 
@@ -131,6 +153,28 @@ class DetectionOrchestrator {
         });
 
         return result;
+    }
+
+    #attachHybridBoundary(scoredAlert, hybridBoundary) {
+        const fallbackBoundary = {
+            deterministic_truth_required: true,
+            graph_pattern: {
+                status: "NO_SIGNAL",
+                confirmed: false,
+                confirmed_pattern_type: null,
+                evidence: null,
+                ai_candidate: null,
+            },
+        };
+
+        const resolvedBoundary = hybridBoundary || fallbackBoundary;
+        const graphPatternBoundary = resolvedBoundary.graph_pattern || fallbackBoundary.graph_pattern;
+
+        return {
+            ...scoredAlert,
+            hybrid_boundary: resolvedBoundary,
+            graph_pattern_status: graphPatternBoundary.status,
+        };
     }
 
     #getConfigNumber(key, fallback) {
