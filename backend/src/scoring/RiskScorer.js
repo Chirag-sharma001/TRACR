@@ -42,23 +42,62 @@ class RiskScorer {
         const riskTier = this.#classifyTier(riskScore);
 
         const patternType = this.#inferPatternType(detectionResult);
+        const involvedAccounts = this.#extractInvolvedAccounts(detectionResult);
+        const transactionIds = this.#extractTransactionIds(detectionResult);
+        const scoreBreakdown = {
+            cycle_score: cycleScore,
+            smurfing_score: smurfingScore,
+            behavioral_score: behavioralScore,
+            geographic_score: geoScore,
+            ...weights,
+        };
+        const deterministicEvidence = this.#buildDeterministicEvidence({
+            detectionResult,
+            patternType,
+            involvedAccounts,
+            transactionIds,
+        });
+        const confidenceLevel = this.#deriveConfidenceLevel({
+            riskScore,
+            scoreBreakdown,
+            deterministicEvidence,
+            patternType,
+        });
+        const narrativeMapping = this.#buildNarrativeMapping({
+            patternType,
+            riskScore,
+            riskTier,
+            scoreBreakdown,
+            deterministicEvidence,
+            confidenceLevel,
+        });
+        const xaiNarrative = this.#buildNarrativeText({
+            narrativeMapping,
+            deterministicEvidence,
+            confidenceLevel,
+        });
+
+        const explainabilityPacket = {
+            deterministic_evidence: deterministicEvidence,
+            score_decomposition: scoreBreakdown,
+            narrative_mapping: narrativeMapping,
+            confidence_level: confidenceLevel,
+        };
+
         const alertDoc = {
             pattern_type: patternType,
             subject_account_id: detectionResult.subject_account_id,
-            involved_accounts: this.#extractInvolvedAccounts(detectionResult),
-            transaction_ids: this.#extractTransactionIds(detectionResult),
+            involved_accounts: involvedAccounts,
+            transaction_ids: transactionIds,
             risk_score: riskScore,
             risk_tier: riskTier,
-            score_breakdown: {
-                cycle_score: cycleScore,
-                smurfing_score: smurfingScore,
-                behavioral_score: behavioralScore,
-                geographic_score: geoScore,
-                ...weights,
-            },
+            confidence_level: confidenceLevel,
+            score_breakdown: scoreBreakdown,
+            explainability_packet: explainabilityPacket,
             cycle_detail: detectionResult.cycle_signals?.[0] || null,
             smurfing_detail: detectionResult.smurfing_signal || null,
             behavioral_detail: detectionResult.behavioral_signal || null,
+            xai_narrative: xaiNarrative,
         };
 
         const saved = await this.alertModel.create(alertDoc);
@@ -160,6 +199,148 @@ class RiskScorer {
         }
 
         return Array.from(ids);
+    }
+
+    #buildDeterministicEvidence({ detectionResult, patternType, involvedAccounts, transactionIds }) {
+        const graphPattern = detectionResult.hybrid_boundary?.graph_pattern || null;
+        const graphEvidence = graphPattern?.evidence || null;
+        const cycleDetail = detectionResult.cycle_signals?.[0] || null;
+
+        const graphSequence = this.#normalizeTransactionSequence(graphEvidence?.transaction_sequence || []);
+        const cycleSequence = this.#normalizeTransactionSequence(cycleDetail?.transaction_sequence || []);
+        const transactionSequence = graphSequence.length > 0 ? graphSequence : cycleSequence;
+
+        const sequenceTransactionIds = transactionSequence
+            .map((edge) => edge.txId)
+            .filter(Boolean);
+
+        const evidenceTransactionIds = Array.from(new Set([
+            ...transactionIds,
+            ...sequenceTransactionIds,
+        ]));
+
+        const primaryAccounts = Array.isArray(graphEvidence?.involved_accounts)
+            && graphEvidence.involved_accounts.length > 0
+            ? graphEvidence.involved_accounts
+            : Array.isArray(cycleDetail?.involved_accounts) && cycleDetail.involved_accounts.length > 0
+                ? cycleDetail.involved_accounts
+                : involvedAccounts;
+
+        return {
+            pattern_type: graphPattern?.confirmed_pattern_type || patternType,
+            transaction_ids: evidenceTransactionIds,
+            involved_accounts: Array.from(new Set(primaryAccounts.filter(Boolean))),
+            transaction_sequence: transactionSequence,
+            window_metadata: graphEvidence?.window_metadata || cycleDetail?.window_metadata || null,
+        };
+    }
+
+    #buildNarrativeMapping({
+        patternType,
+        riskScore,
+        riskTier,
+        scoreBreakdown,
+        deterministicEvidence,
+        confidenceLevel,
+    }) {
+        const contributions = [
+            {
+                key: "cycle",
+                value: scoreBreakdown.cycle_score * scoreBreakdown.cycle_weight,
+            },
+            {
+                key: "smurfing",
+                value: scoreBreakdown.smurfing_score * scoreBreakdown.smurfing_weight,
+            },
+            {
+                key: "behavioral",
+                value: scoreBreakdown.behavioral_score * scoreBreakdown.behavioral_weight,
+            },
+            {
+                key: "geographic",
+                value: ((scoreBreakdown.geographic_score / 15) * 100) * scoreBreakdown.geographic_weight,
+            },
+        ].sort((left, right) => right.value - left.value);
+
+        const dominant = contributions[0] || { key: "cycle", value: 0 };
+        const evidenceTransactionIds = deterministicEvidence.transaction_ids.slice(0, 5);
+        const evidenceAccountIds = deterministicEvidence.involved_accounts.slice(0, 5);
+
+        return {
+            summary: `${patternType} risk tier ${riskTier} (${riskScore.toFixed(2)}) with ${confidenceLevel} confidence.`,
+            statements: [
+                {
+                    claim: `Dominant score contributor is ${dominant.key} (${dominant.value.toFixed(2)}).`,
+                    evidence_refs: {
+                        transaction_ids: evidenceTransactionIds,
+                        account_ids: evidenceAccountIds,
+                    },
+                },
+                {
+                    claim: `Deterministic evidence contains ${deterministicEvidence.transaction_sequence.length} linked transactions.`,
+                    evidence_refs: {
+                        transaction_ids: evidenceTransactionIds,
+                        account_ids: evidenceAccountIds,
+                    },
+                },
+            ],
+        };
+    }
+
+    #buildNarrativeText({ narrativeMapping, deterministicEvidence, confidenceLevel }) {
+        const txRefs = deterministicEvidence.transaction_ids.slice(0, 3).join(", ") || "none";
+        const accountRefs = deterministicEvidence.involved_accounts.slice(0, 3).join(", ") || "none";
+        return `${narrativeMapping.summary} Evidence tx_ids=[${txRefs}] account_ids=[${accountRefs}] confidence=${confidenceLevel}.`;
+    }
+
+    #deriveConfidenceLevel({ riskScore, scoreBreakdown, deterministicEvidence, patternType }) {
+        const weightedContributions = [
+            scoreBreakdown.cycle_score * scoreBreakdown.cycle_weight,
+            scoreBreakdown.smurfing_score * scoreBreakdown.smurfing_weight,
+            scoreBreakdown.behavioral_score * scoreBreakdown.behavioral_weight,
+            ((scoreBreakdown.geographic_score / 15) * 100) * scoreBreakdown.geographic_weight,
+        ];
+
+        const dominantContribution = Math.max(...weightedContributions);
+        const evidenceDepth = Math.min(24, deterministicEvidence.transaction_ids.length * 4)
+            + Math.min(18, deterministicEvidence.involved_accounts.length * 3)
+            + (deterministicEvidence.transaction_sequence.length > 0 ? 12 : 0)
+            + (deterministicEvidence.window_metadata ? 8 : 0)
+            + (patternType === "CIRCULAR_TRADING" && deterministicEvidence.transaction_sequence.length > 0 ? 8 : 0);
+
+        const compositionStrength = dominantContribution >= 30
+            ? 16
+            : dominantContribution >= 15
+                ? 10
+                : 4;
+
+        const riskStrength = riskScore >= 70
+            ? 24
+            : riskScore >= 40
+                ? 14
+                : 6;
+
+        const confidenceScore = evidenceDepth + compositionStrength + riskStrength;
+
+        if (confidenceScore >= 70) {
+            return "HIGH";
+        }
+        if (confidenceScore >= 40) {
+            return "MEDIUM";
+        }
+        return "LOW";
+    }
+
+    #normalizeTransactionSequence(sequence) {
+        return sequence
+            .filter((edge) => edge && typeof edge === "object")
+            .map((edge) => ({
+                from: edge.from || null,
+                to: edge.to || null,
+                amount: Number(edge.amount || 0),
+                timestamp: edge.timestamp || null,
+                txId: edge.txId || edge.transaction_id || null,
+            }));
     }
 
     #getWeight(key, fallback) {
