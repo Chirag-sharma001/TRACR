@@ -120,22 +120,22 @@ const alertSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-      confidence_level: {
-        type: String,
-        enum: ["LOW", "MEDIUM", "HIGH"],
-        required: true,
-        default: "LOW",
-        index: true,
-      },
+    confidence_level: {
+      type: String,
+      enum: ["LOW", "MEDIUM", "HIGH"],
+      required: true,
+      default: "LOW",
+      index: true,
+    },
     score_breakdown: {
       type: scoreBreakdownSchema,
       required: true,
     },
-      explainability_packet: {
-        type: explainabilityPacketSchema,
-        required: true,
-        default: () => ({}),
-      },
+    explainability_packet: {
+      type: explainabilityPacketSchema,
+      required: true,
+      default: () => ({}),
+    },
     cycle_detail: {
       type: mongoose.Schema.Types.Mixed,
       default: null,
