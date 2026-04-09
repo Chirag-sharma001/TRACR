@@ -1,4 +1,5 @@
 const RiskScorer = require("../scoring/RiskScorer");
+const DetectionQualityMetrics = require("./DetectionQualityMetrics");
 
 describe("Detection quality telemetry foundations", () => {
     test("persists config lineage on alerts when threshold lineage is available", async () => {
@@ -80,5 +81,134 @@ describe("Detection quality telemetry foundations", () => {
             config_version_id: null,
             published_change_id: null,
         }));
+    });
+});
+
+describe("DetectionQualityMetrics", () => {
+    test("returns detector and risk-tier segmented daily and weekly windows", async () => {
+        const aggregate = jest.fn(async (pipeline) => {
+            const unit = pipeline[1]?.$group?._id?.bucket?.unit;
+
+            if (unit === "day") {
+                return [
+                    {
+                        _id: {
+                            bucket_start: new Date("2026-04-10T00:00:00.000Z"),
+                            pattern_type: "CIRCULAR_TRADING",
+                            risk_tier: "HIGH",
+                            config_version_id: "cfg-v42",
+                            published_change_id: "chg-9001",
+                        },
+                        count: 3,
+                    },
+                    {
+                        _id: {
+                            bucket_start: new Date("2026-04-10T00:00:00.000Z"),
+                            pattern_type: "SMURFING",
+                            risk_tier: "MEDIUM",
+                            config_version_id: "cfg-v42",
+                            published_change_id: "chg-9001",
+                        },
+                        count: 2,
+                    },
+                ];
+            }
+
+            if (unit === "week") {
+                return [
+                    {
+                        _id: {
+                            bucket_start: new Date("2026-04-07T00:00:00.000Z"),
+                            pattern_type: "BEHAVIORAL_ANOMALY",
+                            risk_tier: "LOW",
+                            config_version_id: "cfg-v43",
+                            published_change_id: "chg-9002",
+                        },
+                        count: 5,
+                    },
+                ];
+            }
+
+            return [];
+        });
+
+        const service = new DetectionQualityMetrics({
+            alertModel: { aggregate },
+            now: () => new Date("2026-04-10T12:00:00.000Z"),
+        });
+
+        const result = await service.getDetectionQualityTelemetry({ day_window_days: 7, week_window_weeks: 4 });
+
+        expect(result).toEqual(expect.objectContaining({
+            generated_at: "2026-04-10T12:00:00.000Z",
+            windows: expect.objectContaining({
+                daily: expect.any(Array),
+                weekly: expect.any(Array),
+            }),
+        }));
+
+        expect(result.windows.daily).toHaveLength(1);
+        expect(result.windows.weekly).toHaveLength(1);
+
+        const dailyBucket = result.windows.daily[0];
+        expect(dailyBucket.detectors.cycle.total).toBe(3);
+        expect(dailyBucket.detectors.cycle.risk_tiers.high).toBe(3);
+        expect(dailyBucket.detectors.smurfing.total).toBe(2);
+        expect(dailyBucket.detectors.smurfing.risk_tiers.medium).toBe(2);
+        expect(dailyBucket.detectors.behavioral.total).toBe(0);
+        expect(dailyBucket.lineage_versions).toEqual([
+            {
+                config_version_id: "cfg-v42",
+                published_change_id: "chg-9001",
+                total: 5,
+            },
+        ]);
+
+        const weeklyBucket = result.windows.weekly[0];
+        expect(weeklyBucket.detectors.behavioral.total).toBe(5);
+        expect(weeklyBucket.detectors.behavioral.risk_tiers.low).toBe(5);
+        expect(weeklyBucket.lineage_versions).toEqual([
+            {
+                config_version_id: "cfg-v43",
+                published_change_id: "chg-9002",
+                total: 5,
+            },
+        ]);
+    });
+
+    test("normalizes unknown detector/risk values and still returns stable schema", async () => {
+        const service = new DetectionQualityMetrics({
+            alertModel: {
+                aggregate: jest.fn(async () => [
+                    {
+                        _id: {
+                            bucket_start: new Date("2026-04-10T00:00:00.000Z"),
+                            pattern_type: "UNKNOWN_PATTERN",
+                            risk_tier: "VERY_HIGH",
+                            config_version_id: null,
+                            published_change_id: null,
+                        },
+                        count: 99,
+                    },
+                ]),
+            },
+            now: () => new Date("2026-04-10T12:00:00.000Z"),
+        });
+
+        const result = await service.getDetectionQualityTelemetry({ day_window_days: 1, week_window_weeks: 1 });
+        const dailyBucket = result.windows.daily[0];
+
+        expect(dailyBucket.detectors.cycle).toEqual({
+            total: 0,
+            risk_tiers: { low: 0, medium: 0, high: 0 },
+        });
+        expect(dailyBucket.detectors.smurfing).toEqual({
+            total: 0,
+            risk_tiers: { low: 0, medium: 0, high: 0 },
+        });
+        expect(dailyBucket.detectors.behavioral).toEqual({
+            total: 0,
+            risk_tiers: { low: 0, medium: 0, high: 0 },
+        });
     });
 });
