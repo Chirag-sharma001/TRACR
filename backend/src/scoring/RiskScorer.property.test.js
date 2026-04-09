@@ -2,6 +2,7 @@ const fc = require("fast-check");
 const GeoRiskEvaluator = require("./GeoRiskEvaluator");
 const RiskScorer = require("./RiskScorer");
 const Alert = require("../models/Alert");
+const { randomUUID } = require("crypto");
 
 // Feature: intelligent-aml-framework, Property 16: Composite Risk Score Invariants
 // Feature: intelligent-aml-framework, Property 17: Geographic Risk Score for FATF Jurisdictions
@@ -13,7 +14,7 @@ describe("RiskScorer property tests", () => {
 
     function makeDetectionResult(cycle, smurfing, hasBehavior) {
         return {
-            transaction_id: crypto.randomUUID(),
+            transaction_id: randomUUID(),
             subject_account_id: "ACC-1",
             cycle_signals: cycle > 0 ? [{ cycle_score: cycle, involved_accounts: ["ACC-1"], transaction_sequence: [] }] : [],
             smurfing_signal: smurfing > 0 ? { smurfing_score: smurfing, transaction_ids: [] } : null,
@@ -378,5 +379,91 @@ describe("RiskScorer property tests", () => {
         expect(Alert.schema.path("explainability_packet.deterministic_evidence")).toBeDefined();
         expect(Alert.schema.path("explainability_packet.deterministic_evidence.transaction_ids")).toBeDefined();
         expect(Alert.schema.path("explainability_packet.deterministic_evidence.involved_accounts")).toBeDefined();
+    });
+
+    test("segment-aware thresholds can change tier from global default for same score", async () => {
+        const alertModel = {
+            create: async (doc) => ({ ...doc, toObject: () => doc }),
+        };
+
+        const scorer = new RiskScorer({
+            alertModel,
+            thresholdConfig: {
+                get: (key, fallback = null) => {
+                    const map = {
+                        score_weight_cycle: 1,
+                        score_weight_smurfing: 0,
+                        score_weight_behavioral: 0,
+                        score_weight_geo: 0,
+                        customer_segment_default: "retail",
+                    };
+                    return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : fallback;
+                },
+            },
+            geoRiskEvaluator: { score: () => 0 },
+            emitter: { emit: jest.fn() },
+        });
+
+        const detectionResult = {
+            transaction_id: randomUUID(),
+            subject_account_id: "ACC-SEG-1",
+            customer_segment: "retail",
+            cycle_signals: [{ cycle_score: 65, involved_accounts: ["ACC-SEG-1"], transaction_sequence: [] }],
+            smurfing_signal: null,
+            behavioral_signal: { anomalies: [] },
+        };
+
+        const alert = await scorer.compute(detectionResult, { sender_country: "IR", receiver_country: "US" });
+
+        expect(alert.risk_score).toBe(65);
+        expect(alert.risk_tier).toBe("HIGH");
+    });
+
+    test("confidence remains supplementary and precision context is persisted separately", async () => {
+        const alertModel = {
+            create: async (doc) => ({ ...doc, toObject: () => doc }),
+        };
+
+        const scorer = new RiskScorer({
+            alertModel,
+            thresholdConfig: {
+                get: (key, fallback = null) => {
+                    const map = {
+                        score_weight_cycle: 1,
+                        score_weight_smurfing: 0,
+                        score_weight_behavioral: 0,
+                        score_weight_geo: 0,
+                    };
+                    return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : fallback;
+                },
+            },
+            geoRiskEvaluator: { score: () => 0 },
+            emitter: { emit: jest.fn() },
+        });
+
+        const detectionResult = {
+            transaction_id: randomUUID(),
+            subject_account_id: "ACC-PREC-1",
+            customer_segment: "enterprise",
+            cycle_signals: [{ cycle_score: 72, involved_accounts: ["ACC-PREC-1"], transaction_sequence: [] }],
+            smurfing_signal: null,
+            behavioral_signal: { anomalies: [] },
+        };
+
+        const alert = await scorer.compute(detectionResult, { sender_country: "US", receiver_country: "GB" });
+
+        expect(alert.risk_tier).toBe("HIGH");
+        expect(alert.confidence_level).toMatch(/^(LOW|MEDIUM|HIGH)$/);
+        expect(alert.precision_context).toEqual(
+            expect.objectContaining({
+                segment: expect.any(String),
+                geo_band: expect.any(String),
+                threshold_source: expect.any(String),
+                thresholds: expect.objectContaining({
+                    high: expect.any(Number),
+                    medium: expect.any(Number),
+                }),
+            })
+        );
     });
 });
