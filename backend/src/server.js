@@ -48,10 +48,9 @@ const User = require("./models/User");
 // Seeds admin + analyst users when running with in-memory MongoDB (no Atlas).
 async function seedDemoUsers() {
     const bcrypt = require("bcrypt");
-    const { v4: uuidv4 } = require("uuid");
     const DEMO_USERS = [
-        { username: "admin", role: "ADMIN" },
-        { username: "analyst", role: "ANALYST" },
+        { username: "admin",   email: "admin@tracr.local",   role: "ADMIN" },
+        { username: "analyst", email: "analyst@tracr.local", role: "ANALYST" },
     ];
     const DEMO_PASSWORD = "Password123!";
     const hash = await bcrypt.hash(DEMO_PASSWORD, 10);
@@ -59,11 +58,10 @@ async function seedDemoUsers() {
         const exists = await User.findOne({ username: u.username }).lean();
         if (!exists) {
             await User.create({
-                user_id: uuidv4(),
                 username: u.username,
+                email: u.email,
                 password_hash: hash,
                 role: u.role,
-                is_active: true,
             });
             console.log(`demo_user_seeded { username: '${u.username}', role: '${u.role}' }`);
         }
@@ -93,10 +91,10 @@ async function createServer() {
             socketTimeoutMS: 45000,
         });
         console.log("Connected to fallback memory MongoDB.");
-        // Auto-seed demo users in memory DB so login works without Atlas
-        await seedDemoUsers();
     }
 
+    // Always ensure demo users exist (Atlas or in-memory)
+    await seedDemoUsers();
     await seedDefaultConfig();
     await thresholdConfig.initialize();
 
@@ -160,7 +158,7 @@ async function createServer() {
         })
     );
     app.use("/api/dashboard", createDashboardRoutes({ jwtMiddleware }));
-    app.use("/api/simulator", createSimulatorRoutes({ auditLogger }));
+    app.use("/api/simulator", createSimulatorRoutes({ jwtMiddleware, auditLogger }));
     app.use("/api/sar", createSARRoutes({ jwtMiddleware, auditLogger }));
 
     app.get("/health", (_req, res) => {

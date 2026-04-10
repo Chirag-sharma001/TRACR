@@ -4,3 +4,5 @@ backend/node_modules
 .vscode/
 .github/
 frontend/node_modules
+backend/venv
+backend/ai_agents/venv
