@@ -80,6 +80,31 @@ const caseSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    sla_started_at: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    sla_due_at: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    escalation_state: {
+      type: String,
+      enum: ["ON_TRACK", "AT_RISK", "BREACHED"],
+      default: "ON_TRACK",
+      index: true,
+    },
+    sar_deadline_at: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    no_file_rationale: {
+      type: String,
+      default: null,
+    },
   },
   {
     versionKey: false,

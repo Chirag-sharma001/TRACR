@@ -3,6 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const http = require("http");
 const mongoose = require("mongoose");
+const path = require("path");
 
 const eventBus = require("./events/eventBus");
 
@@ -57,6 +58,7 @@ async function createServer() {
     const httpServer = http.createServer(app);
 
     app.use(express.json({ limit: "2mb" }));
+    app.use(express.static(path.join(__dirname, "../../frontend-new/public")));
 
     const auditLogger = new AuditLogger();
     const sarQueue = new SARQueue();
@@ -116,10 +118,19 @@ async function createServer() {
         res.json({ ok: true });
     });
 
+    const approvedOrigins = String(
+        process.env.SOCKET_APPROVED_ORIGINS || process.env.CORS_ORIGIN || "http://localhost:3000,http://localhost:3001"
+    )
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean);
+
     const socketGateway = new SocketGateway({
         httpServer,
         emitter: eventBus,
         sarQueue,
+        corsOrigin: approvedOrigins,
+        approvedOrigins,
     });
     socketGateway.start();
 

@@ -37,6 +37,14 @@ const systemConfigSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    config_version_id: {
+      type: String,
+      default: null,
+    },
+    published_change_id: {
+      type: String,
+      default: null,
+    },
     updated_at: {
       type: Date,
       default: Date.now,

@@ -9,6 +9,7 @@ class SocketGateway {
     emitter = eventBus,
     sarQueue = null,
     corsOrigin = "*",
+    approvedOrigins = ["*"],
     logger = console,
   } = {}) {
     this.httpServer = httpServer;
@@ -16,6 +17,9 @@ class SocketGateway {
     this.emitter = emitter;
     this.sarQueue = sarQueue;
     this.corsOrigin = corsOrigin;
+    this.approvedOrigins = Array.isArray(approvedOrigins) && approvedOrigins.length > 0
+      ? approvedOrigins
+      : ["*"];
     this.logger = logger;
 
     this.io = null;
@@ -36,9 +40,24 @@ class SocketGateway {
     });
 
     this.io.on("connection", (socket) => {
+      const origin = socket?.handshake?.headers?.origin || null;
+      if (!this.#isApprovedOrigin(origin)) {
+        socket.emit("connection:denied", { error: "forbidden_origin" });
+        socket.disconnect(true);
+        return;
+      }
+
+      const principal = this.#resolvePrincipal(socket);
+      socket.data = socket.data || {};
+      socket.data.principal = principal;
       this.graphSubscriptions.set(socket.id, new Set());
 
-      socket.on("graph:subscribe", ({ accountId }) => {
+      socket.on("graph:subscribe", ({ accountId, channel_scope }) => {
+        if (!this.#hasScope(principal, channel_scope || "GRAPH_READ")) {
+          socket.emit("graph:denied", { error: "scope_forbidden" });
+          return;
+        }
+
         const room = this.#roomForAccount(accountId);
         socket.join(room);
         this.graphSubscriptions.get(socket.id).add(accountId);
@@ -180,6 +199,45 @@ class SocketGateway {
 
   #roomForAccount(accountId) {
     return `graph:${accountId}`;
+  }
+
+  #isApprovedOrigin(origin) {
+    if (this.approvedOrigins.includes("*")) {
+      return true;
+    }
+
+    if (!origin) {
+      return false;
+    }
+
+    return this.approvedOrigins.includes(origin);
+  }
+
+  #resolvePrincipal(socket) {
+    const auth = socket?.handshake?.auth || {};
+    const role = String(auth.role || "UNKNOWN").toUpperCase();
+    const channelScopes = Array.isArray(auth.channel_scopes)
+      ? auth.channel_scopes.map((scope) => String(scope).toUpperCase())
+      : [];
+
+    const defaultScopesByRole = {
+      ADMIN: ["GRAPH_READ", "METRICS_READ", "SAR_QUEUE_READ"],
+      COMPLIANCE_MANAGER: ["GRAPH_READ", "METRICS_READ", "SAR_QUEUE_READ"],
+      MANAGER: ["GRAPH_READ", "METRICS_READ"],
+      INVESTIGATOR: ["GRAPH_READ"],
+    };
+
+    return {
+      role,
+      channel_scopes: channelScopes.length > 0
+        ? channelScopes
+        : (defaultScopesByRole[role] || []),
+    };
+  }
+
+  #hasScope(principal, requiredScope) {
+    const scope = String(requiredScope || "GRAPH_READ").toUpperCase();
+    return Array.isArray(principal?.channel_scopes) && principal.channel_scopes.includes(scope);
   }
 }
 
