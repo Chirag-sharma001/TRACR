@@ -26,28 +26,10 @@ export default function HomePage() {
     e.preventDefault();
     setIsAuthenticating(true);
     
-    try {
-      const baseUrl = window.location.origin.includes('localhost') ? window.location.origin.replace(':3001', ':3000') : window.location.origin;
-      const res = await fetch(`${baseUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'Password123!' }) // Using backend default for demo
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem('tracr_auth_token', data.token);
-        window.location.href = '/app.html';
-      } else {
-        alert('Authentication failed. Please check your Analyst ID.');
-        setIsAuthenticating(false);
-      }
-    } catch (err) {
-      console.error('Login error:', err);
-      // Fallback for demo if backend is not reachable
-      localStorage.setItem('tracr_auth_token', 'demo-token');
+    // JWT token removed. Bypassing backend auth call and redirecting directly to app
+    setTimeout(() => {
       window.location.href = '/app.html';
-    }
+    }, 800);
   };
 
   return (

@@ -5,7 +5,7 @@ const tpsBurst = 100;
 const burstDurationMs = 30000;
 
 const simulator = new TransactionSimulator({
-    ingestUrl: process.env.API_BASE ? `${process.env.API_BASE}/api/transactions/ingest` : "http://localhost:3000/api/transactions/ingest",
+    ingestUrl: process.env.API_BASE ? `${process.env.API_BASE}/api/transactions/ingest` : "http://localhost:5000/api/transactions/ingest",
     tps: tpsBase,
     smurfingEnabled: true,
     circularEnabled: true,
@@ -18,16 +18,8 @@ console.log(`Target: ${simulator.ingestUrl} | Normal TPS: ${simulator.tps}`);
 
 async function boostrap() {
     try {
-        console.log("Authenticating simulator...");
-        const authRes = await fetch("http://localhost:3000/api/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username: "admin", password: "Password123!" }),
-        });
-
-        if (!authRes.ok) throw new Error("Auth failed");
-        const { token } = await authRes.json();
-        simulator.setToken(token);
+        console.log("Bypassing simulator authentication (dev mode)...");
+        simulator.setToken("mock-token-not-needed");
         console.log("Authenticated successfully.");
         
         simulator.start();

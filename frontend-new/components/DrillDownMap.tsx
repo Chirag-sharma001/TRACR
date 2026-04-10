@@ -173,7 +173,7 @@ export default function DrillDownMap({ countryIso2, countryName, onBack }: Drill
       const map = L.map(mapContainerRef.current!, {
         center: initialCenter,
         zoom: 4,
-        zoomControl: true,
+        zoomControl: false,
         attributionControl: false,
         fadeAnimation: true,
         zoomAnimation: true,
@@ -185,6 +185,14 @@ export default function DrillDownMap({ countryIso2, countryName, onBack }: Drill
       }).addTo(map)
 
       mapRef.current = map
+
+      // Handle custom zoom controls from parent iframe wrapper
+      const handleZoomMessage = (e: MessageEvent) => {
+        if (!e.data || !e.data.cmd || destroyed || !map) return
+        if (e.data.cmd === 'zoom_in') map.zoomIn()
+        if (e.data.cmd === 'zoom_out') map.zoomOut()
+      }
+      window.addEventListener('message', handleZoomMessage)
 
       // Animate flyTo country bounds
       if (bounds) {

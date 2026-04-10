@@ -36,6 +36,7 @@ const {
     createGraphRoutes,
     createCaseRoutes,
     createAdminRoutes,
+    createDashboardRoutes,
     createSimulatorRoutes,
     createSARRoutes,
 } = require("./routes");
@@ -46,11 +47,25 @@ async function createServer() {
     const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/intelligent_aml";
     const port = Number(process.env.PORT || 3000);
 
-    await mongoose.connect(mongoUri, {
-        maxPoolSize: 10,
-        serverSelectionTimeoutMS: 5000,
-        socketTimeoutMS: 45000,
-    });
+    try {
+        await mongoose.connect(mongoUri, {
+            maxPoolSize: 10,
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 45000,
+        });
+        console.log("Connected to primary MongoDB.");
+    } catch (dbError) {
+        console.warn("Failed to connect to primary MongoDB, falling back to local MemoryServer:", dbError.message);
+        const { MongoMemoryServer } = require("mongodb-memory-server");
+        const mongoServer = await MongoMemoryServer.create();
+        const fallbackUri = mongoServer.getUri();
+        await mongoose.connect(fallbackUri, {
+            maxPoolSize: 10,
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 45000,
+        });
+        console.log("Connected to fallback memory MongoDB.");
+    }
 
     await seedDefaultConfig();
     await thresholdConfig.initialize();
@@ -114,6 +129,7 @@ async function createServer() {
             thresholdConfig,
         })
     );
+    app.use("/api/dashboard", createDashboardRoutes({ jwtMiddleware }));
     app.use("/api/simulator", createSimulatorRoutes({ jwtMiddleware, auditLogger }));
     app.use("/api/sar", createSARRoutes({ jwtMiddleware, auditLogger }));
 

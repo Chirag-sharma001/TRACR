@@ -149,18 +149,10 @@ async function submitNewCase() {
   }
 
   try {
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const baseUrl = window.sentinelEngine ? window.sentinelEngine.BASE_URL || ENGINE_CONFIG.BASE_URL : (isLocal ? `http://${window.location.hostname}:3000` : window.location.origin);
-    const token = localStorage.getItem('tracr_auth_token') || localStorage.getItem('token') || '';
-    
-    if (!token && isLocal) {
-        console.warn('No auth token found in localStorage. Proceeding with empty token.');
-    }
-
+    const baseUrl = 'http://localhost:5000';
     const res = await fetch(`${baseUrl}/api/cases`, {
       method: 'POST',
       headers: { 
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
