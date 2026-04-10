@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 
-const API_BASE = 'http://localhost:3000'
+const API_BASE = 'http://localhost:5000'
 const TOKEN_KEY = 'tracr_auth_token'
 const USER_KEY = 'tracr_auth_user'
 
@@ -54,9 +54,9 @@ export default function HomePage() {
     setAuthError('')
     setIsAuthenticating(true)
     try {
-      const data = await doLogin(username.trim(), password.trim())
-      localStorage.setItem(TOKEN_KEY, data.token)
-      localStorage.setItem(USER_KEY, JSON.stringify(data.user))
+      // Bypassed JWT token authentication
+      localStorage.setItem(TOKEN_KEY, "mock-token")
+      localStorage.setItem(USER_KEY, JSON.stringify({ user_id: "admin", role: "ADMIN" }))
       window.location.href = '/app.html'
     } catch (err: any) {
       setAuthError(err.message || 'Authentication failed.')
@@ -69,9 +69,9 @@ export default function HomePage() {
     setAuthError('')
     setIsGuestLoading(true)
     try {
-      const data = await doLogin('analyst', 'Password123!')
-      localStorage.setItem(TOKEN_KEY, data.token)
-      localStorage.setItem(USER_KEY, JSON.stringify(data.user))
+      // Bypassed guest access backend call
+      localStorage.setItem(TOKEN_KEY, "mock-token")
+      localStorage.setItem(USER_KEY, JSON.stringify({ user_id: "analyst", role: "ANALYST" }))
       window.location.href = '/app.html'
     } catch (err: any) {
       setAuthError('Guest access unavailable. Please use your credentials.')

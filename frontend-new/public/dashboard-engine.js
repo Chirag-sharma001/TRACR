@@ -9,7 +9,7 @@
  */
 
 const ENGINE_CONFIG = {
-    BASE_URL: 'http://localhost:3000',    // ← Fixed: was 5000
+    BASE_URL: 'http://localhost:5000',    // ← Fixed: was 5000
     AI_BASE_URL: 'http://localhost:8000', // FastAPI AI agents
     API_PREFIX: '/api',
     AUTH_STORAGE_KEY: 'tracr_auth_token'

@@ -7,7 +7,7 @@
  */
 
 const API_CONFIG = {
-    BASE_URL: 'http://localhost:3000',
+    BASE_URL: 'http://localhost:5000',
     AI_BASE_URL: 'http://localhost:8000',
     TOKEN_KEY: 'tracr_auth_token',
     USER_KEY: 'tracr_auth_user',
