@@ -66,10 +66,30 @@ interface SuspiciousFeed {
   timestamp: number
 }
 
+interface NetworkNode {
+    id: string
+    address: string
+    coords: [number, number]
+    country: string
+    pattern: string
+    lastActive: number
+}
+
+interface NetworkEdge {
+    id: string
+    from: string // address
+    to: string // address
+    fromCoords: [number, number]
+    toCoords: [number, number]
+    lastActive: number
+}
+
 export default function LiveGlobe() {
   const [flows, setFlows] = useState<FlowArc[]>([])
   const [hubs, setHubs] = useState<Record<string, HubNode>>({})
   const [feeds, setFeeds] = useState<SuspiciousFeed[]>([])
+  const [nodes, setNodes] = useState<Record<string, NetworkNode>>({})
+  const [edges, setEdges] = useState<Record<string, NetworkEdge>>({})
   const [metrics, setMetrics] = useState({ tps: 0, activeHubs: 0, alertCount: 0 })
   const socketRef = useRef<any>(null)
 
@@ -105,6 +125,85 @@ export default function LiveGlobe() {
 
         setFlows(prev => [...prev.slice(-15), newFlow]);
 
+        // Network Graph Logic for Suspicious Transactions
+        if (tx.pattern_tag) {
+            const getJitteredCoords = (cc: string): [number, number] => {
+                const base = COUNTRY_COORDS[cc] || [-74, 40];
+                return [
+                    base[0] + (Math.random() - 0.5) * 6, // Jitter for longitude
+                    base[1] + (Math.random() - 0.5) * 6  // Jitter for latitude
+                ];
+            };
+
+            const senderId = tx.sender_account_id;
+            const receiverId = tx.receiver_account_id;
+
+            setNodes(prev => {
+                const next = { ...prev };
+                if (!next[senderId]) {
+                    next[senderId] = {
+                        id: senderId,
+                        address: senderId,
+                        coords: getJitteredCoords(srcCountry),
+                        country: srcCountry,
+                        pattern: tx.pattern_tag,
+                        lastActive: Date.now()
+                    };
+                } else {
+                    next[senderId].lastActive = Date.now();
+                }
+
+                if (!next[receiverId]) {
+                    next[receiverId] = {
+                        id: receiverId,
+                        address: receiverId,
+                        coords: getJitteredCoords(dstCountry),
+                        country: dstCountry,
+                        pattern: tx.pattern_tag,
+                        lastActive: Date.now()
+                    };
+                } else {
+                    next[receiverId].lastActive = Date.now();
+                }
+                return next;
+            });
+
+            setEdges(prev => {
+                const edgeId = `${senderId}->${receiverId}`;
+                const next = { ...prev };
+                // We rely on nodes being updated first or concurrently. 
+                // In this state batch, we can assume the jittered coords are available if we do it carefully.
+                // However, setNodes and setEdges are async. We'll use the calculated ones.
+            });
+
+            // Refined edge update to use current jittered coords or existing ones
+            setEdges(prev => {
+                const edgeId = `${senderId}->${receiverId}`;
+                return {
+                    ...prev,
+                    [edgeId]: {
+                        id: edgeId,
+                        from: senderId,
+                        to: receiverId,
+                        // We'll let the renderer look up coordinates from node state to keep it consistent
+                        fromCoords: [0,0], // placeholder
+                        toCoords: [0,0], // placeholder
+                        lastActive: Date.now()
+                    }
+                };
+            });
+
+            setMetrics(p => ({ ...p, alertCount: p.alertCount + 1 }));
+            const newFeed: SuspiciousFeed = {
+                id: Math.random().toString(36).substr(2, 9),
+                address: tx.sender_account_id,
+                amount: tx.amount_usd,
+                pattern: tx.pattern_tag,
+                timestamp: Date.now()
+            };
+            setFeeds(prev => [newFeed, ...prev.slice(0, 7)]);
+        }
+
         // Update Hub Detection
         setHubs(prev => {
             const next = { ...prev };
@@ -118,25 +217,13 @@ export default function LiveGlobe() {
             }
             return next;
         });
-
-        if (tx.pattern_tag) {
-            setMetrics(p => ({ ...p, alertCount: p.alertCount + 1 }));
-            const newFeed: SuspiciousFeed = {
-                id: Math.random().toString(36).substr(2, 9),
-                address: tx.sender_account_id,
-                amount: tx.amount_usd,
-                pattern: tx.pattern_tag,
-                timestamp: Date.now()
-            };
-            setFeeds(prev => [newFeed, ...prev.slice(0, 7)]);
-        }
     });
 
     socketRef.current.on('metrics:update', (data: any) => {
         setMetrics(p => ({ ...p, tps: data.tps }));
     });
 
-    // Cleanup interval for old arcs and decaying hubs
+    // Cleanup interval for old arcs and decaying hubs/nodes
     const cleanup = setInterval(() => {
         const now = Date.now();
         setFlows(prev => prev.filter(f => now - f.timestamp < 10000));
@@ -147,6 +234,30 @@ export default function LiveGlobe() {
             Object.keys(next).forEach(key => {
                 if (now - next[key].lastUpdated > 60000) {
                     delete next[key];
+                    changed = true;
+                }
+            });
+            return changed ? next : prev;
+        });
+
+        setNodes(prev => {
+            const next = { ...prev };
+            let changed = false;
+            Object.keys(next).forEach(id => {
+                if (now - next[id].lastActive > 30000) {
+                    delete next[id];
+                    changed = true;
+                }
+            });
+            return changed ? next : prev;
+        });
+
+        setEdges(prev => {
+            const next = { ...prev };
+            let changed = false;
+            Object.keys(next).forEach(id => {
+                if (now - next[id].lastActive > 30000) {
+                    delete next[id];
                     changed = true;
                 }
             });
@@ -241,6 +352,24 @@ export default function LiveGlobe() {
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
+          <filter id="glow-red">
+            <feGaussianBlur stdDeviation="5" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <marker
+            id="arrow"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="4"
+            markerHeight="4"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#f43f5e" />
+          </marker>
         </defs>
         <ZoomableGroup zoom={1}>
           <Geographies geography={GEO_URL}>
@@ -279,55 +408,78 @@ export default function LiveGlobe() {
             </Marker>
           ))}
 
-          {/* Animated Transaction Arcs */}
-          {flows.map((flow) => (
+          {/* Animated Background Arcs (Static Country flows) */}
+          {flows.map((flow) => !flow.isSuspicious && (
             <g key={flow.id}>
               <Line
                 from={flow.src}
                 to={flow.dst}
-                stroke={flow.isSuspicious ? '#fb7185' : '#10b981'}
+                stroke="#10b981"
                 strokeWidth={1}
                 strokeLinecap="round"
-                style={{ opacity: 0.2 }}
+                style={{ opacity: 0.15 }}
               />
               <motion.path
                 d={`M ${flow.src[0]} ${flow.src[1]} Q ${(flow.src[0] + flow.dst[0]) / 2} ${(flow.src[1] + flow.dst[1]) / 2 - 20} ${flow.dst[0]} ${flow.dst[1]}`}
                 fill="none"
-                stroke={flow.isSuspicious ? '#f43f5e' : '#10b981'}
-                strokeWidth={2}
+                stroke="#10b981"
+                strokeWidth={1.5}
                 initial={{ pathLength: 0, opacity: 0 }}
                 animate={{ pathLength: 1, opacity: [0, 1, 0] }}
                 transition={{ duration: 1.5, ease: "easeInOut" }}
-                style={{ filter: flow.isSuspicious ? 'drop-shadow(0 0 4px #f43f5e)' : 'none' }}
               />
-              {flow.isSuspicious && (
-                <Marker coordinates={flow.src}>
-                    <motion.g
-                        initial={{ opacity: 0, scale: 0.5 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.4 }}
-                    >
-                        <circle r={12} className="fill-rose-500/10 stroke-rose-500/30 strike-dasharray-2" />
-                        <motion.circle
-                            r={12}
-                            initial={{ pathLength: 0 }}
-                            animate={{ pathLength: 1 }}
-                            transition={{ repeat: Infinity, duration: 2 }}
-                            className="fill-none stroke-rose-400/50 stroke-2"
-                        />
-                        <g transform="translate(14, 4)">
-                            <rect width={110} height={20} x={-2} y={-14} className="fill-slate-900/80 stroke-rose-500/40" rx={2} />
-                            <text className="font-mono text-[6px] fill-rose-300 font-bold uppercase">
-                                THREAT: {flow.pattern}
-                            </text>
-                            <text y={8} className="font-mono text-[7px] fill-white truncate w-24">
-                                {flow.senderAddress.slice(0, 16)}...
-                            </text>
-                        </g>
-                    </motion.g>
-                </Marker>
-              )}
             </g>
+          ))}
+
+          {/* Network Graph: DIRECTED EDGES */}
+          {Object.values(edges).map((edge) => {
+              const fromNode = nodes[edge.from];
+              const toNode = nodes[edge.to];
+              if (!fromNode || !toNode) return null;
+              return (
+                <Line
+                    key={edge.id}
+                    from={fromNode.coords}
+                    to={toNode.coords}
+                    stroke="#f43f5e"
+                    strokeWidth={2}
+                    strokeDasharray="4 2"
+                    markerEnd="url(#arrow)"
+                    style={{ opacity: 0.6, filter: 'drop-shadow(0 0 4px #f43f5e)' }}
+                />
+              );
+          })}
+
+          {/* Network Graph: ENTITY NODES & THREAT LABELS */}
+          {Object.values(nodes).map((node) => (
+            <Marker key={node.id} coordinates={node.coords}>
+                <motion.g
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0 }}
+                >
+                    {/* Glowing Node Body */}
+                    <circle r={8} className="fill-rose-500/20" style={{ filter: 'url(#glow-red)' }} />
+                    <circle r={3} className="fill-rose-500 stroke-white stroke-[0.5px]" />
+                    
+                    {/* Threat Label (Glassmorphism) */}
+                    <g transform="translate(10, -12)">
+                        <rect 
+                            width={120} 
+                            height={34} 
+                            rx={6} 
+                            className="fill-slate-950/90 stroke-rose-500/30 shadow-2xl" 
+                            style={{ backdropFilter: 'blur(8px)' }}
+                        />
+                        <text x={8} y={12} className="font-mono text-[7px] font-black fill-rose-400 uppercase tracking-tighter">
+                           ⚠️ {node.pattern} DETECTION
+                        </text>
+                        <text x={8} y={24} className="font-mono text-[8px] fill-white opacity-90">
+                           ADDR: {node.address.slice(0, 14)}...
+                        </text>
+                    </g>
+                </motion.g>
+            </Marker>
           ))}
         </ZoomableGroup>
       </ComposableMap>

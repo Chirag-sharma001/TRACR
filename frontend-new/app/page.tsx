@@ -138,6 +138,8 @@ export default function HomePage() {
             className="font-semibold leading-none tracking-tight mb-2"
             style={{
               fontSize: 'clamp(3rem, 6vw, 4.5rem)',
+              fontFamily: 'Metropolis, sans-serif',
+              lineHeight: '1.25',
               background: 'linear-gradient(180deg, #FFFFFF 0%, #A1A1AA 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
@@ -201,10 +203,7 @@ export default function HomePage() {
               </motion.p>
             )}
 
-            {/* Demo hint */}
-            <p className="text-[10px] text-gray-600 font-mono px-1">
-              Demo: <span className="text-gray-500">admin</span> / <span className="text-gray-500">Password123!</span>
-            </p>
+
 
             <div className="pt-3 flex flex-col gap-3">
               <button

@@ -104,7 +104,7 @@ export default function FeatureGrid() {
           >
             Power
           </span>{' '}
-          Behind TRACR
+          Behind SATYA FLOW
         </h2>
         <p className="text-slate-400 max-w-xl mx-auto text-lg">
           Three layers of AI-driven defense working in concert to eliminate financial crime.
