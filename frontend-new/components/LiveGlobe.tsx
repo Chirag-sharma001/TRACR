@@ -45,6 +45,9 @@ interface FlowArc {
   dst: [number, number]
   amount: number
   isSuspicious: boolean
+  senderAddress: string
+  receiverAddress: string
+  pattern?: string
   timestamp: number
 }
 
@@ -55,9 +58,18 @@ interface HubNode {
   lastUpdated: number
 }
 
+interface SuspiciousFeed {
+  id: string
+  address: string
+  amount: number
+  pattern: string
+  timestamp: number
+}
+
 export default function LiveGlobe() {
   const [flows, setFlows] = useState<FlowArc[]>([])
   const [hubs, setHubs] = useState<Record<string, HubNode>>({})
+  const [feeds, setFeeds] = useState<SuspiciousFeed[]>([])
   const [metrics, setMetrics] = useState({ tps: 0, activeHubs: 0, alertCount: 0 })
   const socketRef = useRef<any>(null)
 
@@ -85,6 +97,9 @@ export default function LiveGlobe() {
             dst: dstCoords,
             amount: tx.amount_usd,
             isSuspicious: !!tx.pattern_tag,
+            senderAddress: tx.sender_account_id,
+            receiverAddress: tx.receiver_account_id,
+            pattern: tx.pattern_tag,
             timestamp: Date.now()
         };
 
@@ -106,6 +121,14 @@ export default function LiveGlobe() {
 
         if (tx.pattern_tag) {
             setMetrics(p => ({ ...p, alertCount: p.alertCount + 1 }));
+            const newFeed: SuspiciousFeed = {
+                id: Math.random().toString(36).substr(2, 9),
+                address: tx.sender_account_id,
+                amount: tx.amount_usd,
+                pattern: tx.pattern_tag,
+                timestamp: Date.now()
+            };
+            setFeeds(prev => [newFeed, ...prev.slice(0, 7)]);
         }
     });
 
@@ -164,7 +187,40 @@ export default function LiveGlobe() {
         </div>
       </div>
 
-      <div className="absolute bottom-4 right-6 z-20 pointer-events-none text-right">
+      {/* Live Suspicious Feed Panel */}
+      <div className="absolute top-4 right-6 z-20 w-52 pointer-events-none">
+        <div className="bg-slate-950/40 backdrop-blur-md border border-slate-800/50 p-3 rounded-xl overflow-hidden shadow-2xl">
+            <div className="flex items-center justify-between mb-3">
+                <h3 className="text-rose-400 font-mono text-[9px] font-black uppercase tracking-tighter">Live Threat Radar</h3>
+                <div className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping" />
+            </div>
+            <div className="flex flex-col gap-2">
+                <AnimatePresence initial={false}>
+                    {feeds.length === 0 ? (
+                        <p className="text-[8px] text-slate-500 font-mono italic">Waiting for signatures...</p>
+                    ) : (
+                        feeds.map(feed => (
+                            <motion.div
+                                key={feed.id}
+                                initial={{ x: 20, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                exit={{ x: -20, opacity: 0 }}
+                                className="bg-rose-500/5 border-l-2 border-rose-500 p-1.5 rounded-r"
+                            >
+                                <div className="flex justify-between items-center mb-0.5">
+                                    <span className="text-[7px] font-black text-rose-400 font-mono">{feed.pattern}</span>
+                                    <span className="text-[7px] text-slate-500 font-mono">${(feed.amount/1000).toFixed(1)}k</span>
+                                </div>
+                                <div className="text-[8px] text-slate-200 font-mono truncate tracking-tight">{feed.address}</div>
+                            </motion.div>
+                        ))
+                    )}
+                </AnimatePresence>
+            </div>
+        </div>
+      </div>
+
+      <div className="absolute bottom-4 left-6 z-20 pointer-events-none text-left">
           <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest leading-relaxed">
             Network Analysis Engine v4.2<br/>
             Geospatial Crypto Ingestion Active
@@ -246,15 +302,29 @@ export default function LiveGlobe() {
               />
               {flow.isSuspicious && (
                 <Marker coordinates={flow.src}>
-                    <motion.circle
-                        initial={{ r: 0 }}
-                        animate={{ r: 12 }}
-                        transition={{ repeat: Infinity, duration: 2 }}
-                        className="fill-rose-500/20"
-                    />
-                    <text transform="translate(10, 5)" className="font-mono text-[6px] fill-rose-500 font-bold uppercase">
-                        RISK DETECTED
-                    </text>
+                    <motion.g
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.4 }}
+                    >
+                        <circle r={12} className="fill-rose-500/10 stroke-rose-500/30 strike-dasharray-2" />
+                        <motion.circle
+                            r={12}
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: 1 }}
+                            transition={{ repeat: Infinity, duration: 2 }}
+                            className="fill-none stroke-rose-400/50 stroke-2"
+                        />
+                        <g transform="translate(14, 4)">
+                            <rect width={110} height={20} x={-2} y={-14} className="fill-slate-900/80 stroke-rose-500/40" rx={2} />
+                            <text className="font-mono text-[6px] fill-rose-300 font-bold uppercase">
+                                THREAT: {flow.pattern}
+                            </text>
+                            <text y={8} className="font-mono text-[7px] fill-white truncate w-24">
+                                {flow.senderAddress.slice(0, 16)}...
+                            </text>
+                        </g>
+                    </motion.g>
                 </Marker>
               )}
             </g>

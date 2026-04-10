@@ -144,7 +144,7 @@ export default function HomePage() {
               letterSpacing: '-0.04em',
             }}
           >
-            TRACR
+            SATYA FLOW
           </h1>
           <p className="text-gray-400 text-[10px] md:text-xs font-medium tracking-[0.2em] uppercase">
             Intelligent AML Defense Network

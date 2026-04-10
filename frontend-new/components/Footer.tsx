@@ -45,10 +45,10 @@ export default function Footer() {
                 color: '#020617',
               }}
             >
-              T
+              S
             </div>
             <div>
-              <span className="text-white font-bold text-lg tracking-tight">TRACR</span>
+              <span className="text-white font-bold text-lg tracking-tight">SATYA FLOW</span>
               <p className="text-xs font-mono text-slate-500">v2.4.1 — Production Build</p>
             </div>
           </motion.div>
@@ -108,7 +108,7 @@ export default function Footer() {
               System Status:{' '}
               <span className="animate-blink">Operational</span>
             </p>
-            <p className="text-xs font-mono text-slate-600 mt-1">© 2026 TRACR · Sentinel AML Platform</p>
+            <p className="text-xs font-mono text-slate-600 mt-1">© 2026 SATYA FLOW · Sentinel AML Platform</p>
           </div>
         </div>
       </div>
