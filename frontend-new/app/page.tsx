@@ -21,11 +21,6 @@ export default function HomePage() {
 
   useEffect(() => {
     setMounted(true)
-    // Redirect if already logged in
-    if (typeof window !== 'undefined' && localStorage.getItem(TOKEN_KEY)) {
-      window.location.href = '/app.html'
-      return
-    }
     // Dynamic import to avoid SSR issues with Three.js
     import('../components/Globe3D').then(mod => {
       setGlobeComponent(() => mod.default)

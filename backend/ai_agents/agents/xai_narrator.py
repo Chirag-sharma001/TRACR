@@ -123,18 +123,41 @@ Response (3 sentences, formal regulatory language):"""
     return await narrate(prompt, fallback)
 
 
-async def generate_sar_narrative(alert: dict) -> str:
-    """Generate a full SAR narrative from an alert document."""
+import random
+
+AGENT_PERSONALITIES = [
+    {"name": "Agent AETHER", "style": "Highly technical, focuses on network topology and cryptographic patterns."},
+    {"name": "Agent SENTINEL", "style": "Aggressive and security-focused, looks for immediate threats and high-risk jurisdictions."},
+    {"name": "Agent ORACLE", "style": "Analytical and thorough, emphasizes data-driven behavioral baselines and long-term anomalies."},
+    {"name": "Agent NEXUS", "style": "Holistic view, connects multiple entities and identifies complex laundering cycles."},
+    {"name": "Agent CIPHER", "style": "Succinct and precise, focuses on transaction-level inconsistencies and structuring."},
+]
+
+async def generate_sar_narrative(alert: dict) -> dict:
+    """Generate a full SAR narrative from an alert document with agent personality."""
     pattern = alert.get('pattern_type', 'SUSPICIOUS_ACTIVITY')
     subject = alert.get('subject_account_id', 'Unknown')
     score = alert.get('risk_score', 0)
     tier = alert.get('risk_tier', 'HIGH')
+    
+    # Select a random agent for this specific wallet/alert to ensure diversity
+    # We use the subject ID as a seed to keep it consistent for the same wallet
+    random.seed(subject)
+    agent = random.choice(AGENT_PERSONALITIES)
+    random.seed(None) # Reset seed
 
-    prompt = f"""You are a Compliance Officer filing a Suspicious Activity Report (SAR) with FinCEN.
+    prompt = f"""You are {agent['name']}, an AI AML Investigator. Your style is {agent['style']}.
+    
+Write a formal, comprehensive SAR narrative (180-250 words) for the following alert.
+The report should start with "[SYSTEM_REPORT: {agent['name']}]".
 
-Write a formal SAR narrative paragraph (150-200 words) for the following alert.
-Include: entity identification, suspicious behavior description, risk indicators, and recommended action.
-Use regulatory language appropriate for a US Bank Secrecy Act SAR submission.
+Include:
+1. Executive Summary: High-level overview of why this wallet was flagged.
+2. Behavioral Extraction: Specific details about the suspicious pattern ({pattern}).
+3. Risk Assessment: Analysis of the risk tier ({tier}) and score ({score}/100).
+4. Recommended Actions: Concrete next steps for the compliance team.
+
+Use clinical, regulatory language appropriate for FinCEN. Ensure the narrative reflects your unique investigator style.
 
 Alert Details:
 - Pattern: {pattern.replace('_', ' ')}
@@ -146,11 +169,16 @@ Alert Details:
 SAR Narrative:"""
 
     fallback = (
-        f"The reporting institution identified suspicious activity by account {subject} consistent with "
+        f"[SYSTEM_REPORT: {agent['name']}] The reporting institution identified suspicious activity by account {subject} consistent with "
         f"{pattern.replace('_', ' ').lower()} behavior. The account received a risk score of {score}/100 "
-        f"({tier} tier) based on automated detection of transaction patterns that deviate significantly from "
-        f"established norms. The activity involves {len(alert.get('involved_accounts', []))} related accounts "
+        f"({tier} tier) based on automated detection of transaction patterns. {agent['name']} has analyzed the temporal "
+        f"dispersal and fund routing, concluding that the activity involves {len(alert.get('involved_accounts', []))} related accounts "
         f"and presents indicators of potential layering or structuring. This report is submitted in accordance "
-        f"with 31 U.S.C. § 5318(g) and applicable Bank Secrecy Act requirements."
+        f"with 31 U.S.C. § 5318(g)."
     )
-    return await narrate(prompt, fallback)
+    
+    narrative_text = await narrate(prompt, fallback)
+    return {
+        "text": narrative_text,
+        "agent_name": agent["name"]
+    }

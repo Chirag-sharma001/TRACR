@@ -72,7 +72,7 @@ export const generateSARReport = async (data: ReportData) => {
     
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.text('AGENTIC ANALYTIC NARRATIVE (AI GEN):', 25, yPos + 10);
+    doc.text(`AGENTIC ANALYTIC NARRATIVE (${(data as any).agentName || 'AI GEN'}):`, 25, yPos + 10);
     
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');

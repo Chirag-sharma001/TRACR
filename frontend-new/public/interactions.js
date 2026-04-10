@@ -118,6 +118,34 @@ window.initFundFlowGraph = function() {
   // control the map from the main dashboard (e.g. filters)
 };
 
+window.handleFlowFilter = function(filterValue) {
+  const iframe = document.getElementById('fund-flow-iframe');
+  if (!iframe) return;
+
+  // Send message to Iframe
+  iframe.contentWindow.postMessage({ cmd: 'FILTER_FLOW', value: filterValue }, '*');
+
+  // Update button UI
+  document.querySelectorAll('[data-flow-filter]').forEach(btn => {
+    if (btn.getAttribute('data-flow-filter') === filterValue) {
+      btn.style.background = 'rgba(99,102,241,0.25)';
+      btn.style.color = '#a5b4fc';
+    } else {
+      btn.style.background = 'rgba(255,255,255,0.06)';
+      btn.style.color = '#94a3b8';
+    }
+  });
+
+  if (filterValue === 'RESET') {
+    iframe.contentWindow.postMessage({ cmd: 'ZOOM_RESET' }, '*');
+    setTimeout(() => window.handleFlowFilter('ALL'), 100);
+  }
+
+  if (typeof toast === 'function') {
+    toast(`Network filter: ${filterValue}`, 'info', 2000);
+  }
+};
+
 
 
 // ── 1. TOAST SYSTEM ────────────────────────────────────────────────────
@@ -186,7 +214,7 @@ function injectNewCaseModal() {
       <div class="flex items-center justify-between mb-6">
         <div>
           <h2 class="text-xl font-extrabold tracking-tight text-slate-900">Initialize New Case</h2>
-          <p class="text-sm text-slate-500 mt-0.5">Create a new investigation docket in the Sentinel ledger.</p>
+          <p class="text-sm text-slate-500 mt-0.5">Create a new investigation docket in the SATYA ledger.</p>
         </div>
         <button onclick="closeModal('modal-new-case')" class="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
           <span class="material-symbols-outlined">close</span>
@@ -203,10 +231,10 @@ function injectNewCaseModal() {
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Assign Analyst</label>
+            <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Assign Admin / Commander</label>
             <select id="nc-analyst" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all">
-              <option value="analyst">Analyst (default)</option>
-              <option value="admin">Admin</option>
+              <option value="Authorized Admin">Authorized Admin (default)</option>
+              <option value="Cyber Commander">Cyber Commander</option>
               <option value="">Unassigned</option>
             </select>
           </div>

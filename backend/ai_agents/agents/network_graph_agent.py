@@ -122,7 +122,9 @@ async def explain(alert_data: AlertInput) -> GraphExplanationResponse:
 
 async def generate_sar(request: SARRequest, alert: dict) -> SARNarrativeResponse:
     """Generate SAR narrative and filing metadata from an alert document."""
-    narrative = await generate_sar_narrative(alert)
+    res = await generate_sar_narrative(alert)
+    narrative = res["text"]
+    agent_name = res["agent_name"]
 
     # Determine filing type
     pattern = alert.get("pattern_type", "")
@@ -138,6 +140,7 @@ async def generate_sar(request: SARRequest, alert: dict) -> SARNarrativeResponse
         "Part IV (Suspicious Activity Description)": narrative[:200] + "…",
         "Item 29 (Amount)": f"${sum(t.get('amount', 0) for t in ((alert.get('cycle_detail') or {}).get('transaction_sequence') or [])):,.0f}" if pattern == "CIRCULAR_TRADING" else "See smurfing_detail.aggregate_amount",
         "Item 35 (Activity)": "Structuring / Layering / Unusual EFT Activity",
+        "Investigator Agent": agent_name
     }
 
     return SARNarrativeResponse(

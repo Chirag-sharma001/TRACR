@@ -79,7 +79,7 @@ export default function Footer() {
           {/* Right: Sentinel Link + copyright */}
           <div className="text-right">
             <a
-              href="http://localhost:5500/app.html"
+              href="/app.html"
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg mb-3 text-xs font-mono font-semibold uppercase tracking-widest transition-all duration-200"
@@ -99,7 +99,7 @@ export default function Footer() {
               }}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-blink" />
-              Open Sentinel Dashboard →
+              Open SATYA FLOW Dashboard →
             </a>
             <p
               className="text-xs font-mono font-semibold uppercase tracking-widest"
@@ -108,7 +108,7 @@ export default function Footer() {
               System Status:{' '}
               <span className="animate-blink">Operational</span>
             </p>
-            <p className="text-xs font-mono text-slate-600 mt-1">© 2026 SATYA FLOW · Sentinel AML Platform</p>
+            <p className="text-xs font-mono text-slate-600 mt-1">© 2026 SATYA FLOW · The Ethereal Ledger Platform</p>
           </div>
         </div>
       </div>

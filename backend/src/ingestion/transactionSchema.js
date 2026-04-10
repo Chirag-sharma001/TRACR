@@ -47,7 +47,7 @@ module.exports = {
     channel: { enum: ["MOBILE", "BRANCH", "ATM", "ONLINE"] },
     device_id: { type: "string", minLength: 1 },
     is_synthetic: { type: "boolean" },
-    pattern_tag: { enum: ["SMURFING", "CIRCULAR_TRADING", null] },
+    pattern_tag: { enum: ["SMURFING", "CIRCULAR_TRADING", "CASH_TO_CRYPTO", null] },
     metadata: {
       type: "object",
       additionalProperties: true,

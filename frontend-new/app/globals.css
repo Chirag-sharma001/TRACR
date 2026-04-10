@@ -164,3 +164,7 @@ canvas {
   will-change: auto;
   contain: layout style;
 }
+
+@keyframes flowLine {
+  to { stroke-dashoffset: -82; }
+}

@@ -1,7 +1,7 @@
 const TransactionSimulator = require("./TransactionSimulator");
 
-const tpsBase = process.env.TPS ? parseInt(process.env.TPS, 10) : 10;
-const tpsBurst = 100;
+const tpsBase = process.env.TPS ? parseInt(process.env.TPS, 10) : 5;
+const tpsBurst = 50;
 const burstDurationMs = 30000;
 
 const simulator = new TransactionSimulator({

@@ -72,6 +72,7 @@ interface NetworkNode {
     coords: [number, number]
     country: string
     pattern: string
+    riskScore: number
     lastActive: number
 }
 
@@ -91,7 +92,21 @@ export default function LiveGlobe() {
   const [nodes, setNodes] = useState<Record<string, NetworkNode>>({})
   const [edges, setEdges] = useState<Record<string, NetworkEdge>>({})
   const [metrics, setMetrics] = useState({ tps: 0, activeHubs: 0, alertCount: 0 })
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null)
+  const [filter, setFilter] = useState('ALL')
+  const [activeFraud, setActiveFraud] = useState(false)
   const socketRef = useRef<any>(null)
+
+  // Identify neighbors of the hovered node for networking highlighting
+  const activeNetwork = useMemo(() => {
+    if (!hoveredNodeId) return null;
+    const connected = new Set<string>([hoveredNodeId]);
+    Object.values(edges).forEach(edge => {
+      if (edge.from === hoveredNodeId) connected.add(edge.to);
+      if (edge.to === hoveredNodeId) connected.add(edge.from);
+    });
+    return connected;
+  }, [hoveredNodeId, edges]);
 
   useEffect(() => {
     // Connect to backend socket
@@ -103,6 +118,14 @@ export default function LiveGlobe() {
     socketRef.current.on('connect', () => {
         console.log('Connected to Live Fund Flow socket');
     });
+
+    const handleMessage = (e: MessageEvent) => {
+        if (!e.data || !e.data.cmd) return;
+        const { cmd, value } = e.data;
+        if (cmd === 'FILTER_FLOW') setFilter(value || 'ALL');
+        if (cmd === 'REPORT_ANALYTICS') console.log('Generating report for', value);
+    }
+    window.addEventListener('message', handleMessage);
 
     socketRef.current.on('transaction:saved', (tx: any) => {
         const srcCountry = tx.geolocation?.sender_country || 'US';
@@ -147,6 +170,7 @@ export default function LiveGlobe() {
                         coords: getJitteredCoords(srcCountry),
                         country: srcCountry,
                         pattern: tx.pattern_tag,
+                        riskScore: 75 + Math.random() * 24.5,
                         lastActive: Date.now()
                     };
                 } else {
@@ -160,6 +184,7 @@ export default function LiveGlobe() {
                         coords: getJitteredCoords(dstCountry),
                         country: dstCountry,
                         pattern: tx.pattern_tag,
+                        riskScore: 75 + Math.random() * 24.5,
                         lastActive: Date.now()
                     };
                 } else {
@@ -267,6 +292,7 @@ export default function LiveGlobe() {
 
     return () => {
         socketRef.current?.disconnect();
+        window.removeEventListener('message', handleMessage);
         clearInterval(cleanup);
     };
   }, []);
@@ -274,6 +300,18 @@ export default function LiveGlobe() {
   const activeHubList = useMemo(() => {
     return Object.values(hubs).filter(h => h.count > 5);
   }, [hubs]);
+
+  const getRiskColor = (score: number) => {
+    if (score > 92) return '#f43f5e'; // Critical (Rose)
+    if (score > 85) return '#f97316'; // Elevated (Orange)
+    return '#fbbf24'; // Moderate (Amber)
+  };
+
+  const getRiskGlow = (score: number) => {
+    if (score > 92) return 'url(#glow-red)';
+    if (score > 85) return 'url(#glow-orange)';
+    return 'url(#glow-amber)';
+  };
 
   return (
     <div className="relative w-full h-full bg-[#020617] overflow-hidden">
@@ -353,7 +391,21 @@ export default function LiveGlobe() {
             </feMerge>
           </filter>
           <filter id="glow-red">
-            <feGaussianBlur stdDeviation="5" result="coloredBlur" />
+            <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="glow-orange">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="glow-amber">
+            <feGaussianBlur stdDeviation="1.5" result="coloredBlur" />
             <feMerge>
               <feMergeNode in="coloredBlur" />
               <feMergeNode in="SourceGraphic" />
@@ -378,12 +430,16 @@ export default function LiveGlobe() {
                 <Geography
                   key={geo.rsmKey}
                   geography={geo}
-                  fill="#0f172a"
+                  fill="#020617"
                   stroke="#1e293b"
                   strokeWidth={0.5}
                   style={{
-                    default: { outline: 'none' },
-                    hover: { fill: '#1e293b', outline: 'none' },
+                    default: { 
+                      outline: 'none', 
+                      opacity: hoveredNodeId ? 0.3 : 1,
+                      transition: 'all 0.4s ease'
+                    },
+                    hover: { fill: '#0f172a', outline: 'none' },
                     pressed: { outline: 'none' },
                   }}
                 />
@@ -399,7 +455,7 @@ export default function LiveGlobe() {
                 animate={{ r: 8, opacity: 0.3 }}
                 className="fill-blue-500"
               />
-              <circle r={3} fill="#60a5fa" stroke="#fff" strokeWidth={1} />
+              <circle r={3} fill="#6a1b9a" stroke="#fff" strokeWidth={1} />
               <g transform="translate(8, -8)">
                   <text className="font-mono text-[8px] font-bold fill-blue-400 uppercase tracking-widest">
                     HUB: {hub.id}
@@ -408,28 +464,58 @@ export default function LiveGlobe() {
             </Marker>
           ))}
 
-          {/* Animated Background Arcs (Static Country flows) */}
-          {flows.map((flow) => !flow.isSuspicious && (
-            <g key={flow.id}>
+          {/* Macro-flow: INTER-HUB CONNECTIVITY (Subtle) */}
+          {activeHubList.length > 1 && activeHubList.map((h1, i) => 
+            activeHubList.slice(i + 1).map((h2) => (
               <Line
-                from={flow.src}
-                to={flow.dst}
-                stroke="#10b981"
+                key={`${h1.id}-${h2.id}`}
+                from={h1.coords}
+                to={h2.coords}
+                stroke="#60a5fa"
                 strokeWidth={1}
-                strokeLinecap="round"
-                style={{ opacity: 0.15 }}
+                strokeDasharray="4 4"
+                style={{ opacity: 0.3, pointerEvents: 'none' }}
               />
-              <motion.path
-                d={`M ${flow.src[0]} ${flow.src[1]} Q ${(flow.src[0] + flow.dst[0]) / 2} ${(flow.src[1] + flow.dst[1]) / 2 - 20} ${flow.dst[0]} ${flow.dst[1]}`}
-                fill="none"
-                stroke="#10b981"
-                strokeWidth={1.5}
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: 1, opacity: [0, 1, 0] }}
-                transition={{ duration: 1.5, ease: "easeInOut" }}
+            ))
+          )}
+
+          {/* Micro-flow: HUB-TO-NODE TETHERING (Linking entities to their geographic hub) */}
+          {Object.values(nodes).map((node) => {
+            if (filter !== 'ALL' && node.pattern !== filter) return null;
+            const hubCoords = COUNTRY_COORDS[node.country];
+            if (!hubCoords) return null;
+            return (
+              <Line
+                key={`tether-${node.id}`}
+                from={hubCoords}
+                to={node.coords}
+                stroke="#475569"
+                strokeWidth={1}
+                style={{ opacity: 0.6, pointerEvents: 'none' }}
               />
-            </g>
-          ))}
+            );
+          })}
+
+          {/* LIVE STREAM: HIGH-VELOCITY FUND ARCS (Animated Arcs for Every Transaction) */}
+          {flows.map((flow) => {
+             if (filter !== 'ALL' && flow.pattern !== filter) return null;
+             return (
+               <Line
+                 key={flow.id}
+                 from={flow.src}
+                 to={flow.dst}
+                 stroke={flow.isSuspicious ? "#f43f5e" : "#10b981"}
+                 strokeWidth={flow.isSuspicious ? 1.5 : 0.8}
+                 strokeLinecap="round"
+                 markerEnd="url(#arrow)"
+                 style={{ 
+                   opacity: 0.4, 
+                   strokeDasharray: '41, 41',
+                   animation: 'flowLine 1.5s linear infinite'
+                 }}
+               />
+             );
+          })}
 
           {/* Network Graph: DIRECTED EDGES (Animated discovery to static state) */}
           {Object.values(edges).map((edge) => {
@@ -437,58 +523,150 @@ export default function LiveGlobe() {
               const toNode = nodes[edge.to];
               if (!fromNode || !toNode) return null;
               
-              // Calculate path for motion.path
-              const d = `M ${fromNode.coords[0]} ${fromNode.coords[1]} L ${toNode.coords[0]} ${toNode.coords[1]}`;
+              // Filter check
+              if (filter !== 'ALL' && fromNode.pattern !== filter) return null;
+              
+              const isHighlighted = activeNetwork?.has(edge.from) && activeNetwork?.has(edge.to);
+              const isDimmed = hoveredNodeId && !isHighlighted;
+
+              // Calculate organic curved path
+              const midX = (fromNode.coords[0] + toNode.coords[0]) / 2;
+              const midY = (fromNode.coords[1] + toNode.coords[1]) / 2 - 5; // Slight arc
+              const d = `M ${fromNode.coords[0]} ${fromNode.coords[1]} Q ${midX} ${midY} ${toNode.coords[0]} ${toNode.coords[1]}`;
 
               return (
-                <g key={edge.id}>
+                <g key={edge.id} style={{ transition: 'opacity 0.4s ease', opacity: isDimmed ? 0.1 : 1.0 }}>
                   <motion.path
                     d={d}
                     fill="none"
-                    stroke="#f43f5e"
-                    strokeWidth={2}
-                    strokeDasharray="4 2"
-                    markerEnd="url(#arrow)"
+                    stroke={isHighlighted ? "#fbbf24" : "#f43f5e"}
+                    strokeWidth={isHighlighted ? 2 : 1}
+                    strokeDasharray={isHighlighted ? "none" : "2 4"}
                     initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 0.7 }}
-                    transition={{ duration: 1.5, ease: "easeInOut" }}
-                    style={{ filter: 'drop-shadow(0 0 4px #f43f5e)' }}
+                    animate={{ pathLength: 1, opacity: 1 }}
+                    transition={{ duration: 1, ease: "easeInOut" }}
+                    style={{ filter: isHighlighted ? 'drop-shadow(0 0 6px #fbbf24)' : 'drop-shadow(0 0 2px #f43f5e)' }}
+                  />
+                  
+                  {/* Flow 'Discharge' Animation (Traveling Comet) */}
+                  <motion.path
+                    d={d}
+                    fill="none"
+                    stroke={isHighlighted ? "#fff" : "#fbbf24"}
+                    strokeWidth={isHighlighted ? 1.5 : 1}
+                    strokeLinecap="round"
+                    strokeDasharray="1, 40"
+                    animate={{ 
+                        strokeDashoffset: [80, 0],
+                        opacity: [0, 1, 0],
+                    }}
+                    transition={{ 
+                        duration: 1.2, 
+                        repeat: Infinity, 
+                        ease: "linear",
+                        times: [0, 0.5, 1] 
+                    }}
+                    style={{ filter: isHighlighted ? 'url(#glow-amber)' : 'drop-shadow(0 0 3px #fbbf24)' }}
                   />
                 </g>
               );
           })}
 
           {/* Network Graph: ENTITY NODES & THREAT LABELS */}
-          {Object.values(nodes).map((node) => (
-            <Marker key={node.id} coordinates={node.coords}>
-                <motion.g
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0 }}
-                >
-                    {/* Glowing Node Body */}
-                    <circle r={8} className="fill-rose-500/20" style={{ filter: 'url(#glow-red)' }} />
-                    <circle r={3} className="fill-rose-500 stroke-white stroke-[0.5px]" />
-                    
-                    {/* Threat Label (Glassmorphism) */}
-                    <g transform="translate(10, -12)">
-                        <rect 
-                            width={120} 
-                            height={34} 
-                            rx={6} 
-                            className="fill-slate-950/90 stroke-rose-500/30 shadow-2xl" 
-                            style={{ backdropFilter: 'blur(8px)' }}
-                        />
-                        <text x={8} y={12} className="font-mono text-[7px] font-black fill-rose-400 uppercase tracking-tighter">
-                           ⚠️ {node.pattern} DETECTION
-                        </text>
-                        <text x={8} y={24} className="font-mono text-[8px] fill-white opacity-90">
-                           ADDR: {node.address.slice(0, 14)}...
-                        </text>
-                    </g>
-                </motion.g>
-            </Marker>
-          ))}
+          {Object.values(nodes).map((node) => {
+            if (filter !== 'ALL' && node.pattern !== filter) return null;
+            
+            const isHighlighted = activeNetwork?.has(node.id);
+            const isDimmed = hoveredNodeId && !isHighlighted;
+            const isCenter = hoveredNodeId === node.id;
+
+            return (
+              <Marker 
+                key={node.id} 
+                coordinates={node.coords}
+                onMouseEnter={() => setHoveredNodeId(node.id)}
+                onMouseLeave={() => setHoveredNodeId(null)}
+              >
+                  <motion.g
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ 
+                        opacity: isDimmed ? 0.2 : 1, 
+                        scale: isCenter ? 1.2 : 1,
+                      }}
+                      transition={{ duration: 0.4 }}
+                  >
+                      {/* Glowing Node Body */}
+                      <circle 
+                        r={isHighlighted ? 12 : 8} 
+                        fill={getRiskColor(node.riskScore)}
+                        fillOpacity={0.2}
+                        style={{ filter: node.pattern ? getRiskGlow(node.riskScore) : 'none' }} 
+                      />
+                      <circle 
+                        r={isCenter ? 5 : 3} 
+                        fill={getRiskColor(node.riskScore)}
+                        stroke="#fff"
+                        strokeOpacity={0.4}
+                        strokeWidth={0.5} 
+                      />
+                      
+                      {/* Detailed Sophisticated Tooltip */}
+                      <AnimatePresence>
+                        {isCenter && (
+                          <motion.g 
+                            initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 5, scale: 0.9 }}
+                            transform="translate(14, -40)"
+                          >
+                              {/* Background HUD Glass */}
+                              <rect 
+                                  width={180} 
+                                  height={100} 
+                                  rx={12} 
+                                  className="fill-slate-950/95 stroke-white/10 shadow-2xl" 
+                                  style={{ backdropFilter: 'blur(16px)' }}
+                              />
+                              
+                              {/* Top Accent Line */}
+                              <rect width={180} height={2} rx={1} className="fill-rose-500 shadow-[0_0_8px_#f43f5e]" />
+
+                              {/* Title Section */}
+                              <text x={12} y={20} className="font-mono text-[10px] font-black fill-rose-400 uppercase tracking-widest">
+                                 🚨 SIGNATURE: {node.pattern}
+                              </text>
+                              <text x={12} y={32} className="font-mono text-[7px] fill-slate-500 uppercase font-bold tracking-tighter">
+                                 STATUS: INVESTIGATION IN PROGRESS
+                              </text>
+
+                              {/* Data Grid */}
+                              <g transform="translate(12, 45)">
+                                  <text y={0} className="font-mono text-[7px] fill-slate-500 font-bold uppercase">Address Range</text>
+                                  <text y={10} className="font-mono text-[9px] fill-white font-medium">{node.address.slice(0, 22)}</text>
+                                  
+                                  <text y={28} className="font-mono text-[7px] fill-slate-500 font-bold uppercase">Geostatic Origin</text>
+                                  <text y={38} className="font-mono text-[9px] fill-emerald-400 font-bold">{node.country} NODE • v4.2</text>
+                                  
+                                  <text x={100} y={28} className="font-mono text-[7px] fill-slate-500 font-bold uppercase">Risk Score</text>
+                                  <text x={100} y={38} className="font-mono text-[9px] fill-rose-500 font-black">{node.riskScore.toFixed(1)}% {node.riskScore > 90 ? 'CRITICAL' : 'ELEVATED'}</text>
+                              </g>
+
+                              {/* Decorative HUD Scanning Line */}
+                              <motion.rect 
+                                width={178} 
+                                height={1} 
+                                x={1}
+                                className="fill-blue-400/20"
+                                animate={{ y: [0, 98, 0] }}
+                                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                              />
+                          </motion.g>
+                        )}
+                      </AnimatePresence>
+                  </motion.g>
+              </Marker>
+            );
+          })}
         </ZoomableGroup>
       </ComposableMap>
     </div>

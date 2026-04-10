@@ -69,8 +69,8 @@ class DashboardEngine {
             });
 
             this.socket.on('connect', () => {
-                console.log('✅ Connected to Sentinel Backbone');
-                if (window.toast) window.toast('Sentinel Intelligence Synchronized', 'success', 2000);
+                console.log('✅ Connected to SATYA Backbone');
+                if (window.toast) window.toast('SATYA Intelligence Synchronized', 'success', 2000);
             });
 
             // Live alert from detection engine
@@ -98,7 +98,7 @@ class DashboardEngine {
 
             this.socket.on('disconnect', () => {
                 console.warn('❌ Disconnected from Backbone');
-                if (window.toast) window.toast('Sentinel Connection Lost', 'warn');
+                if (window.toast) window.toast('SATYA Connection Lost', 'warn');
             });
 
             this.socket.on('connect_error', (err) => {
@@ -458,6 +458,65 @@ class DashboardEngine {
         if (kpiSuspicious) kpiSuspicious.textContent = (this.metrics.suspicious_count || this.alerts.length).toLocaleString();
         if (kpiHigh) kpiHigh.textContent = (this.metrics.high_risk_entities || 0).toLocaleString();
         if (kpiAvg) kpiAvg.textContent = (this.metrics.avg_risk_score || 0).toFixed(1);
+
+        this.updateCryptoKPIs();
+    }
+
+    updateCryptoKPIs() {
+        const kpiVol = document.getElementById('crypto-kpi-vol');
+        const kpiMixer = document.getElementById('crypto-kpi-mixer');
+        const kpiClusters = document.getElementById('crypto-kpi-clusters');
+        const kpiJumps = document.getElementById('crypto-kpi-jumps');
+
+        if (!kpiVol) return; // Not on crypto page
+
+        // 1. Global Volume (24h)
+        const totalVolB = (this.metrics.total_volume || 8200000000) / 1000000000;
+        const driftVol = totalVolB + (Math.random() * 0.02 - 0.01);
+        kpiVol.textContent = `$${driftVol.toFixed(2)}B`;
+        const volBar = document.getElementById('crypto-kpi-vol-bar');
+        if (volBar) volBar.style.width = `${Math.min(100, 65 + (Math.random() * 5))}%`;
+        
+        // 2. Mixer Usage
+        const baseMixer = 42.1 + (this.alerts.length * 0.3);
+        const currentMixer = baseMixer + (Math.random() * 0.8 - 0.4);
+        if (kpiMixer) {
+            kpiMixer.textContent = `${currentMixer.toFixed(1)}%`;
+            const mixerLabel = document.getElementById('crypto-kpi-mixer-label');
+            if (mixerLabel) {
+                mixerLabel.textContent = currentMixer > 45 ? 'CRITICAL' : 'HIGH';
+                mixerLabel.className = currentMixer > 45 ? 'text-error font-extrabold text-xs animate-pulse' : 'text-error font-bold text-xs';
+            }
+            const bar = document.getElementById('crypto-kpi-mixer-bar');
+            if (bar) {
+                bar.style.width = `${Math.min(100, currentMixer * 1.5)}%`;
+                if (currentMixer > 45) bar.classList.add('animate-pulse');
+                else bar.classList.remove('animate-pulse');
+            }
+        }
+
+        // 3. Flagged Clusters
+        if (kpiClusters) {
+            const clusters = 1240 + (this.metrics.high_risk_entities * 5) + Math.floor(Math.random() * 3);
+            kpiClusters.textContent = clusters.toLocaleString();
+            const clusterStatus = document.getElementById('crypto-kpi-clusters-status');
+            if (clusterStatus) {
+                const isHeavy = this.metrics.high_risk_entities > 10;
+                clusterStatus.textContent = isHeavy ? 'DEEP SCAN' : 'STABLE';
+                clusterStatus.className = isHeavy ? 'text-tertiary font-black text-xs' : 'text-tertiary font-bold text-xs';
+            }
+            const bar = document.getElementById('crypto-kpi-clusters-bar');
+            if (bar) bar.style.width = `${Math.min(100, 40 + (this.metrics.high_risk_entities * 2))}%`;
+        }
+
+        // 4. Cross-Chain Jumps
+        if (kpiJumps) {
+            const baseJumps = 38.2 + (this.metrics.total_transactions / 5000);
+            const jumps = baseJumps + (Math.random() * 0.1);
+            kpiJumps.textContent = `${jumps.toFixed(1)}K`;
+            const bar = document.getElementById('crypto-kpi-jumps-bar');
+            if (bar) bar.style.width = `${Math.min(100, 55 + (Math.random() * 10))}%`;
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
