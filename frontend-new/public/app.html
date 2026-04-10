@@ -203,9 +203,53 @@
     .nav-active {
       color: #3525cd !important;
       font-weight: 700;
-      background: rgba(99, 102, 241, 0.06);
-      border-right: 2px solid #3525cd;
-      border-radius: 0.5rem 0 0 0.5rem;
+      background: rgba(99, 102, 241, 0.08);
+      border-radius: 0.5rem;
+    }
+
+    /* ── Floating Sidebar ─────────────────────────────────── */
+    #sidebar {
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                  transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                  box-shadow 0.3s ease;
+    }
+    #sidebar.collapsed {
+      width: 4.5rem;
+    }
+    #sidebar.collapsed .nav-label,
+    #sidebar.collapsed .brand-text,
+    #sidebar.collapsed .sidebar-footer-text {
+      opacity: 0;
+      width: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    #sidebar.collapsed .nav-link {
+      justify-content: center;
+      padding-left: 0;
+      padding-right: 0;
+    }
+    #sidebar.collapsed .brand-logo {
+      margin: 0 auto;
+    }
+    #sidebar .nav-label,
+    #sidebar .brand-text,
+    #sidebar .sidebar-footer-text {
+      transition: opacity 0.2s ease, width 0.2s ease;
+      white-space: nowrap;
+    }
+    #main-header {
+      transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #main-content {
+      transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #toggle-sidebar-btn {
+      transition: transform 0.3s ease;
+    }
+    #sidebar.collapsed #toggle-sidebar-btn span {
+      transform: rotate(180deg);
+      display: block;
     }
   </style>
   <script src="http://localhost:5000/socket.io/socket.io.js"></script>
@@ -216,78 +260,97 @@
 <body class="bg-surface text-on-surface font-body selection:bg-primary/20">
 
   <!-- ═══════════════════════════════════════════════════════════ SIDEBAR ══ -->
-  <aside id="sidebar" class="fixed left-0 top-0 h-full w-64 z-50 bg-slate-50 flex flex-col py-6 px-4 gap-2">
-    <div class="px-2 mb-8">
+  <aside id="sidebar" class="fixed left-3 top-3 h-[calc(100vh-1.5rem)] w-64 z-50 bg-white/90 backdrop-blur-xl flex flex-col py-5 px-3 gap-2 rounded-2xl shadow-xl shadow-slate-200/80 border border-slate-200/60">
+
+    <!-- Brand + Toggle -->
+    <div class="flex items-center justify-between px-1 mb-6">
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-lg bg-micro-gradient flex items-center justify-center text-on-primary">
+        <div class="brand-logo w-8 h-8 rounded-lg bg-micro-gradient flex items-center justify-center text-on-primary flex-shrink-0">
           <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">security</span>
         </div>
-        <div>
+        <div class="brand-text">
           <h1 class="font-headline font-bold text-on-surface tracking-tighter text-lg leading-tight">Sentinel AML</h1>
           <p class="text-[10px] text-on-surface-variant font-label tracking-widest uppercase">The Ethereal Ledger</p>
         </div>
       </div>
+      <button id="toggle-sidebar-btn" onclick="window.toggleSidebar()" class="ml-auto flex-shrink-0 w-7 h-7 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-400 flex items-center justify-center transition-all" title="Collapse sidebar">
+        <span class="material-symbols-outlined text-base transition-transform duration-300">chevron_left</span>
+      </button>
     </div>
 
-    <nav id="sidebar-nav" class="flex-1 space-y-1">
+    <nav id="sidebar-nav" class="flex-1 space-y-0.5 overflow-hidden">
       <a data-page="overview"
-        class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-500 hover:text-indigo-500 hover:bg-indigo-50/50 transition-all duration-200 font-sans text-xs font-medium uppercase tracking-wider cursor-pointer"
+        class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/70 transition-all duration-200 font-sans text-xs font-semibold uppercase tracking-wider cursor-pointer"
         onclick="navigate('overview')">
-        <span class="material-symbols-outlined text-lg">dashboard</span>Overview
+        <span class="material-symbols-outlined text-lg flex-shrink-0">dashboard</span>
+        <span class="nav-label">Overview</span>
       </a>
       <a data-page="live"
-        class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-500 hover:text-indigo-500 hover:bg-indigo-50/50 transition-all duration-200 font-sans text-xs font-medium uppercase tracking-wider cursor-pointer"
+        class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/70 transition-all duration-200 font-sans text-xs font-semibold uppercase tracking-wider cursor-pointer"
         onclick="navigate('live')">
-        <span class="material-symbols-outlined text-lg">monitor_heart</span>Live Monitoring
+        <span class="material-symbols-outlined text-lg flex-shrink-0">monitor_heart</span>
+        <span class="nav-label">Live Monitoring</span>
       </a>
       <a data-page="network"
-        class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-500 hover:text-indigo-500 hover:bg-indigo-50/50 transition-all duration-200 font-sans text-xs font-medium uppercase tracking-wider cursor-pointer"
+        class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/70 transition-all duration-200 font-sans text-xs font-semibold uppercase tracking-wider cursor-pointer"
         onclick="navigate('network')">
-        <span class="material-symbols-outlined text-lg">hub</span>Network Analysis
+        <span class="material-symbols-outlined text-lg flex-shrink-0">hub</span>
+        <span class="nav-label">Network Analysis</span>
       </a>
       <a data-page="behavioral"
-        class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-500 hover:text-indigo-500 hover:bg-indigo-50/50 transition-all duration-200 font-sans text-xs font-medium uppercase tracking-wider cursor-pointer"
+        class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/70 transition-all duration-200 font-sans text-xs font-semibold uppercase tracking-wider cursor-pointer"
         onclick="navigate('behavioral')">
-        <span class="material-symbols-outlined text-lg">psychology</span>Behavioral Analysis
+        <span class="material-symbols-outlined text-lg flex-shrink-0">psychology</span>
+        <span class="nav-label">Behavioral Analysis</span>
       </a>
       <a data-page="cases"
-        class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-500 hover:text-indigo-500 hover:bg-indigo-50/50 transition-all duration-200 font-sans text-xs font-medium uppercase tracking-wider cursor-pointer"
+        class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/70 transition-all duration-200 font-sans text-xs font-semibold uppercase tracking-wider cursor-pointer"
         onclick="navigate('cases')">
-        <span class="material-symbols-outlined text-lg">work</span>Case Management
+        <span class="material-symbols-outlined text-lg flex-shrink-0">work</span>
+        <span class="nav-label">Case Management</span>
       </a>
       <a data-page="reports"
-        class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-500 hover:text-indigo-500 hover:bg-indigo-50/50 transition-all duration-200 font-sans text-xs font-medium uppercase tracking-wider cursor-pointer"
+        class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/70 transition-all duration-200 font-sans text-xs font-semibold uppercase tracking-wider cursor-pointer"
         onclick="navigate('reports')">
-        <span class="material-symbols-outlined text-lg">assessment</span>Reports
+        <span class="material-symbols-outlined text-lg flex-shrink-0">assessment</span>
+        <span class="nav-label">Reports</span>
       </a>
       <a data-page="simulator"
-        class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-500 hover:text-indigo-500 hover:bg-indigo-50/50 transition-all duration-200 font-sans text-xs font-medium uppercase tracking-wider cursor-pointer"
+        class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/70 transition-all duration-200 font-sans text-xs font-semibold uppercase tracking-wider cursor-pointer"
         onclick="navigate('simulator')">
-        <span class="material-symbols-outlined text-lg">science</span>Simulator
+        <span class="material-symbols-outlined text-lg flex-shrink-0">science</span>
+        <span class="nav-label">Simulator</span>
+      </a>
+      <a data-page="crypto"
+        class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/70 transition-all duration-200 font-sans text-xs font-semibold uppercase tracking-wider cursor-pointer"
+        onclick="navigate('crypto')">
+        <span class="material-symbols-outlined text-lg flex-shrink-0">currency_bitcoin</span>
+        <span class="nav-label">Crypto Analysis</span>
       </a>
       <a data-page="settings"
-        class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-500 hover:text-indigo-500 hover:bg-indigo-50/50 transition-all duration-200 font-sans text-xs font-medium uppercase tracking-wider cursor-pointer"
+        class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/70 transition-all duration-200 font-sans text-xs font-semibold uppercase tracking-wider cursor-pointer"
         onclick="navigate('settings')">
-        <span class="material-symbols-outlined text-lg">settings</span>Settings
+        <span class="material-symbols-outlined text-lg flex-shrink-0">settings</span>
+        <span class="nav-label">Settings</span>
       </a>
     </nav>
 
-    <div class="mt-auto pt-6 space-y-1 border-t border-slate-100">
-      <a
-        class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-500 hover:text-indigo-500 transition-all duration-200 font-sans text-xs uppercase tracking-wider cursor-pointer">
-        <span class="material-symbols-outlined text-lg">help</span>Help Center
+    <div class="mt-auto pt-4 space-y-0.5 border-t border-slate-100">
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-indigo-500 transition-all duration-200 font-sans text-xs uppercase tracking-wider cursor-pointer">
+        <span class="material-symbols-outlined text-lg flex-shrink-0">help</span>
+        <span class="nav-label sidebar-footer-text">Help Center</span>
       </a>
-      <a
-        onclick="window.handleLogout && window.handleLogout()"
-        class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-500 hover:text-error transition-all duration-200 font-sans text-xs uppercase tracking-wider cursor-pointer">
-        <span class="material-symbols-outlined text-lg">logout</span>Log Out
+      <a onclick="window.handleLogout && window.handleLogout()"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-error transition-all duration-200 font-sans text-xs uppercase tracking-wider cursor-pointer">
+        <span class="material-symbols-outlined text-lg flex-shrink-0">logout</span>
+        <span class="nav-label sidebar-footer-text">Log Out</span>
       </a>
     </div>
   </aside>
 
   <!-- ═══════════════════════════════════════════════════════════ TOP BAR ══ -->
-  <header
-    class="fixed top-0 right-0 left-64 z-40 bg-slate-50/80 backdrop-blur-xl h-16 px-6 flex justify-between items-center">
+  <header id="main-header"
+    class="fixed top-0 right-0 z-40 bg-slate-50/80 backdrop-blur-xl h-16 px-6 flex justify-between items-center" style="left: 17.5rem;">
     <div class="flex items-center flex-1 max-w-lg">
       <div class="relative w-full">
         <span
@@ -336,7 +399,7 @@
   </header>
 
   <!-- ═══════════════════════════════════════════════════════ MAIN CANVAS ══ -->
-  <main class="ml-64 min-h-screen">
+  <main id="main-content" class="min-h-screen" style="margin-left: 17.5rem;">
     <div id="content-area" class="page-enter"></div>
   </main>
 
@@ -2022,10 +2085,417 @@
     </button>
   </template>
 
+  <!-- ─── CRYPTO ANALYSIS ───────────────────────────────────────────────── -->
+  <template id="page-crypto">
+    <div class="pt-24 px-8 pb-12 min-h-screen">
+      <header class="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
+        <div>
+          <nav class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-medium text-on-surface-variant uppercase tracking-widest">Intelligence Lab</span>
+            <span class="material-symbols-outlined text-xs text-outline">chevron_right</span>
+            <span class="text-xs font-bold text-primary uppercase tracking-widest">Crypto Analysis</span>
+          </nav>
+          <h2 class="text-3xl font-extrabold tracking-tight text-on-surface">Global Crypto Fund Flow</h2>
+          <p class="text-on-surface-variant text-sm mt-1 max-w-lg">Monitor cryptocurrency laundering patterns, darknet routing, and on-chain relationships connected to fiat off-ramps.</p>
+        </div>
+        <div class="flex gap-3">
+          <button class="bg-surface-container-highest text-primary font-semibold text-sm px-5 py-2.5 rounded-lg">Export Report</button>
+          <button class="bg-micro-gradient text-on-primary font-semibold text-sm px-5 py-2.5 rounded-lg shadow-sm hover:shadow-md transition-all">Submit SAR</button>
+        </div>
+      </header>
+
+      <!-- Global KPIs -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-surface-container-lowest p-5 rounded-xl border border-slate-100 flex flex-col justify-between h-32 relative overflow-hidden">
+          <div class="absolute top-0 right-0 p-4 opacity-[0.03]"><span class="material-symbols-outlined text-5xl">currency_bitcoin</span></div>
+          <span class="text-on-surface-variant text-[10px] font-bold uppercase tracking-[0.15em]">Global Volume (24h)</span>
+          <div class="flex items-baseline gap-2"><span class="text-3xl font-extrabold tracking-tight">$8.2B</span><span class="text-secondary font-bold text-xs">+14%</span></div>
+          <div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
+            <div class="h-full bg-secondary w-[65%]"></div>
+          </div>
+        </div>
+        <div class="bg-surface-container-lowest p-5 rounded-xl border border-slate-100 flex flex-col justify-between h-32 relative overflow-hidden">
+          <div class="absolute top-0 right-0 p-4 opacity-[0.03]"><span class="material-symbols-outlined text-5xl">swap_calls</span></div>
+          <span class="text-on-surface-variant text-[10px] font-bold uppercase tracking-[0.15em]">Mixer Usage</span>
+          <div class="flex items-baseline gap-2"><span class="text-3xl font-extrabold tracking-tight text-error">42.1%</span><span class="text-error font-bold text-xs">High</span></div>
+          <div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
+            <div class="h-full bg-error w-[80%]"></div>
+          </div>
+        </div>
+        <div class="bg-surface-container-lowest p-5 rounded-xl border border-slate-100 flex flex-col justify-between h-32 relative overflow-hidden">
+          <div class="absolute top-0 right-0 p-4 opacity-[0.03]"><span class="material-symbols-outlined text-5xl">warning</span></div>
+          <span class="text-on-surface-variant text-[10px] font-bold uppercase tracking-[0.15em]">Flagged Clusters</span>
+          <div class="flex items-baseline gap-2"><span class="text-3xl font-extrabold tracking-tight">1,240</span><span class="text-tertiary font-bold text-xs">Stable</span></div>
+          <div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
+            <div class="h-full bg-tertiary-container w-[40%]"></div>
+          </div>
+        </div>
+        <div class="bg-surface-container-lowest p-5 rounded-xl border border-slate-100 flex flex-col justify-between h-32 relative overflow-hidden">
+          <div class="absolute top-0 right-0 p-4 opacity-[0.03]"><span class="material-symbols-outlined text-5xl">link_off</span></div>
+          <span class="text-on-surface-variant text-[10px] font-bold uppercase tracking-[0.15em]">Cross-Chain Jumps</span>
+          <div class="flex items-baseline gap-2"><span class="text-3xl font-extrabold tracking-tight text-secondary">38K</span><span class="text-on-surface-variant font-bold text-xs italic">Review</span></div>
+          <div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
+            <div class="h-full bg-indigo-400 w-[55%]"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Interactive Global Fund Flow Graph ──────────────────────────── -->
+      <div class="mb-8">
+        <!-- Header -->
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-indigo-400 text-lg">account_tree</span>
+            <h3 class="text-sm font-bold text-on-surface uppercase tracking-widest">Live Global Fund Flow Map</h3>
+            <span class="px-2 py-0.5 bg-error/10 text-error text-[10px] font-bold rounded-full flex items-center gap-1"><span class="w-1.5 h-1.5 bg-error rounded-full inline-block animate-pulse"></span>Live</span>
+          </div>
+          <!-- Filter Controls -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-[10px] text-slate-400 uppercase tracking-wider mr-1">Filter:</span>
+            <button data-flow-filter="ALL" class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" style="background:rgba(99,102,241,0.25);color:#a5b4fc;">All</button>
+            <button data-flow-filter="SMURFING" class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" style="background:rgba(255,255,255,0.06);color:#94a3b8;">Smurfing</button>
+            <button data-flow-filter="CROSS-CHAIN" class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" style="background:rgba(255,255,255,0.06);color:#94a3b8;">Cross-Chain</button>
+            <button data-flow-filter="RAPID CYCLING" class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" style="background:rgba(255,255,255,0.06);color:#94a3b8;">Rapid Cycling</button>
+            <button data-flow-filter="FIAT EXIT" class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" style="background:rgba(255,255,255,0.06);color:#94a3b8;">Fiat Exit</button>
+            <div class="h-4 w-px bg-slate-700 mx-1"></div>
+            <button id="fund-flow-reset-btn" class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" style="background:rgba(255,255,255,0.06);color:#94a3b8;" title="Reset zoom">Reset View</button>
+          </div>
+        </div>
+
+        <!-- Map Container -->
+        <div id="fund-flow-graph" class="relative rounded-2xl overflow-hidden border border-slate-700/60 shadow-2xl" style="height:600px; background:#020617;">
+          <iframe 
+            src="http://localhost:3000/live-map" 
+            class="w-full h-full border-0" 
+            style="display:block;"
+            id="fund-flow-iframe"
+          ></iframe>
+
+          <!-- Overlay Summary Panel (HUD Style) -->
+          <div class="absolute top-6 right-6 z-10 w-64 pointer-events-none">
+            <div class="bg-[#0b1222]/90 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl">
+              <div class="flex items-center gap-2 mb-3 border-b border-white/5 pb-2">
+                <span class="material-symbols-outlined text-blue-400 text-sm">hub</span>
+                <span class="text-[10px] font-bold text-white uppercase tracking-widest">Network Summary</span>
+              </div>
+              <div class="space-y-3">
+                <div class="flex justify-between items-end">
+                  <span class="text-[9px] text-slate-400 uppercase tracking-tighter">Primary Hub</span>
+                  <span class="text-xs font-bold text-blue-400 font-mono" id="live-primary-hub">UNITED KINGDOM</span>
+                </div>
+                <div class="flex justify-between items-end">
+                  <span class="text-[9px] text-slate-400 uppercase tracking-tighter">High Risk Volume</span>
+                  <span class="text-xs font-bold text-rose-500 font-mono" id="live-risk-vol">$142,880</span>
+                </div>
+                <div class="pt-2">
+                    <div class="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div class="h-full bg-blue-500 w-[65%] animate-pulse"></div>
+                    </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interaction Hint -->
+          <div class="absolute bottom-6 left-6 z-10 bg-black/40 backdrop-blur-md border border-white/5 rounded-full px-3 py-1.5 flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Live Feed Protocol Active · Encrypted Stream</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-lg">moving</span>
+            <h3 class="text-sm font-bold text-on-surface uppercase tracking-widest">Live Global Fund Flows</h3>
+            <span class="px-2 py-0.5 bg-error/10 text-error text-[10px] font-bold rounded-full flex items-center gap-1"><span class="w-1.5 h-1.5 bg-error rounded-full inline-block animate-pulse"></span>Live</span>
+          </div>
+          <span class="text-[10px] text-slate-400 uppercase tracking-wider">Updated 2 min ago · Click address to copy · <span class="text-primary font-bold cursor-pointer hover:underline">Analyze</span> to trace</span>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
+
+          <!-- ── FLOW 1: SMURFING — HIGH RISK ─────────────────────────────── -->
+          <div class="group relative bg-red-50/60 hover:bg-red-50 border-l-4 border-error transition-all px-5 py-4">
+            <!-- Pattern Badge -->
+            <div class="absolute top-3 right-4 flex items-center gap-1.5">
+              <span class="flex items-center gap-1 px-2 py-0.5 bg-error text-white text-[10px] font-bold rounded-full animate-pulse">
+                <span class="material-symbols-outlined text-[12px]">warning</span>SMURFING DETECTED
+              </span>
+            </div>
+            <div class="grid grid-cols-12 gap-3 items-center mt-4">
+              <div class="col-span-1 text-[10px] text-slate-400 font-mono">#F-001</div>
+              <!-- Origin Address (Suspicious) -->
+              <div class="col-span-3">
+                <div class="flex items-center gap-1.5 mb-1">
+                  <span class="w-2 h-2 bg-error rounded-full animate-pulse flex-shrink-0"></span>
+                  <span class="text-[10px] font-bold uppercase text-error tracking-wider">Origin · Flagged</span>
+                </div>
+                <button onclick="window.copyAndAnalyze('0x7fA291...9c41', event)" class="group/addr flex items-center gap-1.5 bg-error/10 border border-error/30 rounded-lg px-2 py-1.5 w-full hover:bg-error/20 transition-all text-left">
+                  <span class="material-symbols-outlined text-error text-[13px]">content_copy</span>
+                  <span class="font-mono text-xs font-bold text-error truncate">0x7fA291...9c41</span>
+                </button>
+                <p class="text-[10px] text-slate-400 mt-1 pl-1">3 wallets · $9,900 each · ETH</p>
+              </div>
+              <div class="col-span-1 flex flex-col items-center gap-0.5">
+                <span class="material-symbols-outlined text-error text-lg">arrow_forward</span>
+                <span class="text-[9px] text-error font-bold">SPLIT</span>
+              </div>
+              <!-- Destination -->
+              <div class="col-span-3">
+                <div class="flex items-center gap-1.5 mb-1">
+                  <span class="w-2 h-2 bg-amber-400 rounded-full flex-shrink-0"></span>
+                  <span class="text-[10px] font-bold uppercase text-amber-700 tracking-wider">Destination · Mixer</span>
+                </div>
+                <button onclick="window.copyAndAnalyze('TornadoCash.Router', event)" class="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 w-full hover:bg-amber-100 transition-all text-left">
+                  <span class="material-symbols-outlined text-amber-500 text-[13px]">content_copy</span>
+                  <span class="font-mono text-xs font-bold text-amber-700 truncate">TornadoCash.Router</span>
+                </button>
+                <p class="text-[10px] text-slate-400 mt-1 pl-1">Mixer · Smart Contract</p>
+              </div>
+              <div class="col-span-2 text-right">
+                <p class="text-base font-extrabold text-slate-800">$29,700</p>
+                <p class="text-[10px] text-error font-bold">3× $9,900 splits</p>
+              </div>
+              <div class="col-span-2 flex items-center justify-end">
+                <button onclick="window.analyzeAddressInCrypto('0x7fA291...9c41')" class="flex items-center gap-1 px-3 py-1.5 bg-error text-white text-[10px] font-bold rounded-lg hover:bg-error/80 transition-all shadow-sm">
+                  <span class="material-symbols-outlined text-[13px]">explore</span>Analyze
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── FLOW 2: CROSS-CHAIN LAYERING ─────────────────────────────── -->
+          <div class="group relative bg-amber-50/50 hover:bg-amber-50 border-l-4 border-amber-400 transition-all px-5 py-4">
+            <div class="absolute top-3 right-4 flex items-center gap-1.5">
+              <span class="flex items-center gap-1 px-2 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full">
+                <span class="material-symbols-outlined text-[12px]">swap_horiz</span>CROSS-CHAIN LAYERING
+              </span>
+            </div>
+            <div class="grid grid-cols-12 gap-3 items-center mt-4">
+              <div class="col-span-1 text-[10px] text-slate-400 font-mono">#F-002</div>
+              <div class="col-span-3">
+                <div class="flex items-center gap-1.5 mb-1">
+                  <span class="w-2 h-2 bg-amber-400 rounded-full flex-shrink-0"></span>
+                  <span class="text-[10px] font-bold uppercase text-amber-700 tracking-wider">Origin · BTC Cold</span>
+                </div>
+                <button onclick="window.copyAndAnalyze('bc1qxy2kgdygjrsqtzq2n0yrf249', event)" class="flex items-center gap-1.5 bg-amber-100 border border-amber-300 rounded-lg px-2 py-1.5 w-full hover:bg-amber-200 transition-all text-left">
+                  <span class="material-symbols-outlined text-amber-600 text-[13px]">content_copy</span>
+                  <span class="font-mono text-xs font-bold text-amber-800 truncate">bc1qxy2...m3t8</span>
+                </button>
+                <p class="text-[10px] text-slate-400 mt-1 pl-1">Cold Wallet · 18.4 BTC</p>
+              </div>
+              <div class="col-span-1 flex flex-col items-center gap-0.5">
+                <span class="material-symbols-outlined text-amber-500 text-lg">arrow_forward</span>
+                <span class="text-[9px] text-amber-600 font-bold">BRIDGE</span>
+              </div>
+              <div class="col-span-3">
+                <div class="flex items-center gap-1.5 mb-1">
+                  <span class="w-2 h-2 bg-indigo-400 rounded-full flex-shrink-0"></span>
+                  <span class="text-[10px] font-bold uppercase text-indigo-600 tracking-wider">Destination · ETH Bridge</span>
+                </div>
+                <button onclick="window.copyAndAnalyze('0xWrappedBridge.ETH', event)" class="flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-1.5 w-full hover:bg-indigo-100 transition-all text-left">
+                  <span class="material-symbols-outlined text-indigo-500 text-[13px]">content_copy</span>
+                  <span class="font-mono text-xs font-bold text-indigo-700 truncate">0xWrappedBridge.ETH</span>
+                </button>
+                <p class="text-[10px] text-slate-400 mt-1 pl-1">Cross-Chain Relay</p>
+              </div>
+              <div class="col-span-2 text-right">
+                <p class="text-base font-extrabold text-slate-800">$1.12M</p>
+                <p class="text-[10px] text-slate-400">18.4 BTC</p>
+              </div>
+              <div class="col-span-2 flex items-center justify-end">
+                <button onclick="window.analyzeAddressInCrypto('bc1qxy2kgdygjrsqtzq2n0yrf249')" class="flex items-center gap-1 px-3 py-1.5 bg-amber-500 text-white text-[10px] font-bold rounded-lg hover:bg-amber-400 transition-all shadow-sm">
+                  <span class="material-symbols-outlined text-[13px]">explore</span>Analyze
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── FLOW 3: RAPID CYCLING ─────────────────────────────────────── -->
+          <div class="group relative bg-purple-50/50 hover:bg-purple-50 border-l-4 border-purple-400 transition-all px-5 py-4">
+            <div class="absolute top-3 right-4 flex items-center gap-1.5">
+              <span class="flex items-center gap-1 px-2 py-0.5 bg-purple-600 text-white text-[10px] font-bold rounded-full">
+                <span class="material-symbols-outlined text-[12px]">autorenew</span>RAPID CYCLING
+              </span>
+            </div>
+            <div class="grid grid-cols-12 gap-3 items-center mt-4">
+              <div class="col-span-1 text-[10px] text-slate-400 font-mono">#F-003</div>
+              <div class="col-span-3">
+                <div class="flex items-center gap-1.5 mb-1">
+                  <span class="w-2 h-2 bg-purple-400 rounded-full animate-pulse flex-shrink-0"></span>
+                  <span class="text-[10px] font-bold uppercase text-purple-700 tracking-wider">Origin · Velocity Alert</span>
+                </div>
+                <button onclick="window.copyAndAnalyze('USR-4492-MULTI', event)" class="flex items-center gap-1.5 bg-purple-100 border border-purple-300 rounded-lg px-2 py-1.5 w-full hover:bg-purple-200 transition-all text-left">
+                  <span class="material-symbols-outlined text-purple-600 text-[13px]">content_copy</span>
+                  <span class="font-mono text-xs font-bold text-purple-800 truncate">USR-4492-MULTI</span>
+                </button>
+                <p class="text-[10px] text-slate-400 mt-1 pl-1">11 txns in 2h · USDT</p>
+              </div>
+              <div class="col-span-1 flex flex-col items-center gap-0.5">
+                <span class="material-symbols-outlined text-purple-500 text-lg">arrow_forward</span>
+                <span class="text-[9px] text-purple-600 font-bold">×11</span>
+              </div>
+              <div class="col-span-3">
+                <div class="flex items-center gap-1.5 mb-1">
+                  <span class="w-2 h-2 bg-slate-400 rounded-full flex-shrink-0"></span>
+                  <span class="text-[10px] font-bold uppercase text-slate-600 tracking-wider">Destination · OKX</span>
+                </div>
+                <button onclick="window.copyAndAnalyze('OKX-UNREGISTERED-TR', event)" class="flex items-center gap-1.5 bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5 w-full hover:bg-slate-200 transition-all text-left">
+                  <span class="material-symbols-outlined text-slate-500 text-[13px]">content_copy</span>
+                  <span class="font-mono text-xs font-bold text-slate-700 truncate">OKX-UNREGISTERED-TR</span>
+                </button>
+                <p class="text-[10px] text-slate-400 mt-1 pl-1">Offshore Exchange · TRC-20</p>
+              </div>
+              <div class="col-span-2 text-right">
+                <p class="text-base font-extrabold text-slate-800">$108,900</p>
+                <p class="text-[10px] text-purple-600 font-bold">High velocity</p>
+              </div>
+              <div class="col-span-2 flex items-center justify-end">
+                <button onclick="window.analyzeAddressInCrypto('USR-4492-MULTI')" class="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white text-[10px] font-bold rounded-lg hover:bg-purple-500 transition-all shadow-sm">
+                  <span class="material-symbols-outlined text-[13px]">explore</span>Analyze
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── FLOW 4: FIAT EXIT — COMPLETED ─────────────────────────────── -->
+          <div class="group relative bg-white hover:bg-slate-50/80 border-l-4 border-slate-300 transition-all px-5 py-4">
+            <div class="absolute top-3 right-4 flex items-center gap-1.5">
+              <span class="flex items-center gap-1 px-2 py-0.5 bg-slate-500 text-white text-[10px] font-bold rounded-full">
+                <span class="material-symbols-outlined text-[12px]">done_all</span>FIAT EXIT · COMPLETED
+              </span>
+            </div>
+            <div class="grid grid-cols-12 gap-3 items-center mt-4">
+              <div class="col-span-1 text-[10px] text-slate-400 font-mono">#F-004</div>
+              <div class="col-span-3">
+                <div class="flex items-center gap-1.5 mb-1">
+                  <span class="w-2 h-2 bg-red-400 rounded-full flex-shrink-0"></span>
+                  <span class="text-[10px] font-bold uppercase text-red-600 tracking-wider">Origin · Flagged ETH</span>
+                </div>
+                <button onclick="window.copyAndAnalyze('0xC310...d882', event)" class="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-lg px-2 py-1.5 w-full hover:bg-red-100 transition-all text-left">
+                  <span class="material-symbols-outlined text-red-500 text-[13px]">content_copy</span>
+                  <span class="font-mono text-xs font-bold text-red-700 truncate">0xC310...d882</span>
+                </button>
+                <p class="text-[10px] text-slate-400 mt-1 pl-1">Flagged Entity · ETH</p>
+              </div>
+              <div class="col-span-1 flex flex-col items-center gap-0.5">
+                <span class="material-symbols-outlined text-slate-400 text-lg">arrow_forward</span>
+                <span class="text-[9px] text-slate-500 font-bold">EXIT</span>
+              </div>
+              <div class="col-span-3">
+                <div class="flex items-center gap-1.5 mb-1">
+                  <span class="w-2 h-2 bg-slate-400 rounded-full flex-shrink-0"></span>
+                  <span class="text-[10px] font-bold uppercase text-slate-600 tracking-wider">Destination · Bank</span>
+                </div>
+                <button onclick="window.copyAndAnalyze('BARCLAYS-UK-WIRE', event)" class="flex items-center gap-1.5 bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5 w-full hover:bg-slate-200 transition-all text-left">
+                  <span class="material-symbols-outlined text-slate-500 text-[13px]">content_copy</span>
+                  <span class="font-mono text-xs font-bold text-slate-700 truncate">BARCLAYS-UK-WIRE</span>
+                </button>
+                <p class="text-[10px] text-slate-400 mt-1 pl-1">Fiat Bank Withdrawal</p>
+              </div>
+              <div class="col-span-2 text-right">
+                <p class="text-base font-extrabold text-slate-800">$88,200</p>
+                <p class="text-[10px] text-slate-400">Completed ✓</p>
+              </div>
+              <div class="col-span-2 flex items-center justify-end">
+                <button onclick="window.analyzeAddressInCrypto('0xC310...d882')" class="flex items-center gap-1 px-3 py-1.5 bg-slate-700 text-white text-[10px] font-bold rounded-lg hover:bg-slate-600 transition-all shadow-sm">
+                  <span class="material-symbols-outlined text-[13px]">explore</span>Analyze
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="grid grid-cols-12 gap-6">
+        <!-- Wallet Analyzer Input -->
+        <div class="col-span-12 xl:col-span-4 flex flex-col gap-6">
+          <div class="bg-surface-container-lowest rounded-xl p-8 border border-slate-100 shadow-sm flex flex-col h-full">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center">
+                <span class="material-symbols-outlined text-primary text-xl">search</span>
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-on-surface">Target Wallet Inspector</h3>
+                <p class="text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">Input Address / ID</p>
+              </div>
+            </div>
+            
+            <p class="text-xs text-on-surface-variant mb-4 leading-relaxed">Enter a destination address, user identifier, or transaction hash to visualize upstream origins and downstream exposure recursively.</p>
+            
+            <div class="relative w-full mb-4">
+              <input id="crypto-wallet-input" type="text" placeholder="e.g., 0x9a8f... or USR-1094" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all outline-none font-mono text-slate-800" />
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3 mb-6">
+              <div>
+                <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Depth</label>
+                <select id="crypto-depth-select" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all">
+                  <option value="1">1 Hop (Direct)</option>
+                  <option value="2" selected>2 Hops</option>
+                  <option value="3">3 Hops</option>
+                  <option value="4">4 Hops (Deep Track)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Network</label>
+                <select id="crypto-network-select" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all">
+                  <option>All Networks</option>
+                  <option>Ethereum (ERC-20)</option>
+                  <option>Bitcoin</option>
+                  <option>Tron (TRC-20)</option>
+                </select>
+              </div>
+            </div>
+
+            <button onclick="window.analyzeCryptoFlow()" id="btn-analyze-crypto" class="mt-auto w-full group relative flex items-center justify-center gap-2 overflow-hidden rounded-lg bg-surface-container-highest px-4 py-3 text-sm font-bold text-primary transition-all hover:bg-primary/10">
+              <span class="material-symbols-outlined text-lg transition-transform group-hover:scale-110">explore</span>
+              <span>Execute Trace</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Flow Visualization -->
+        <div class="col-span-12 xl:col-span-8">
+          <div class="bg-surface-container-lowest rounded-xl p-0 border border-slate-100 shadow-sm h-[600px] flex flex-col overflow-hidden relative">
+            <div class="px-6 py-4 border-b border-slate-50 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-10">
+              <h2 class="text-sm font-bold tracking-tight text-on-surface">Connected Entities Matrix</h2>
+              <div class="flex gap-2 text-[10px]">
+                <span class="px-2 py-1 bg-surface-container font-bold rounded uppercase tracking-wider text-on-surface-variant flex items-center gap-1"><span class="w-1.5 h-1.5 bg-error rounded-full inline-block animate-pulse"></span>Live Monitor</span>
+                <span class="px-2 py-1 border border-slate-200 font-bold rounded uppercase tracking-wider text-primary cursor-pointer hover:bg-slate-50">View JSON</span>
+              </div>
+            </div>
+            
+            <div id="crypto-graph-container" class="flex-1 bg-slate-50/50 p-6 overflow-y-auto relative graph-grid">
+              
+              <!-- Empty State -->
+              <div id="crypto-empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-center p-8 opacity-100 transition-opacity duration-300">
+                <div class="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                  <span class="material-symbols-outlined text-slate-300 text-4xl">travel_explore</span>
+                </div>
+                <h3 class="text-sm font-bold text-slate-700">Awaiting Target Wallet</h3>
+                <p class="text-xs text-slate-500 mt-2 max-w-xs leading-relaxed">Input a wallet address or entity ID to generate the blockchain traversal matrix.</p>
+              </div>
+
+              <!-- Content Payload (Dynamically built) -->
+              <div id="crypto-payload" class="hidden opacity-0 transition-opacity duration-500 flex flex-col gap-6 w-full max-w-3xl mx-auto pb-10">
+                <!-- Data will be injected here by interactions.js -->
+              </div>
+              
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
   <!-- ══════════════════════════════════════════════════════════ SCRIPTS ══ -->
   <script>
     // ── Router ──────────────────────────────────────────────────────────────
-    const PAGES = ['overview', 'live', 'network', 'behavioral', 'cases', 'reports', 'simulator', 'settings'];
+    const PAGES = ['overview', 'live', 'network', 'behavioral', 'cases', 'reports', 'simulator', 'settings', 'crypto'];
     let currentPage = 'overview';
     let liveInterval = null;
 

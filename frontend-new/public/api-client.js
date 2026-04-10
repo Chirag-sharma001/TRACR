@@ -227,6 +227,17 @@ const AgentAPI = {
     },
 };
 
+// ── Graph API ─────────────────────────────────────────────────────────────────
+
+const GraphAPI = {
+    async getSubgraph(accountId, depth = 2) {
+        return api.get(`/api/graph/subgraph/${accountId}?depth=${depth}`);
+    },
+    async getBaseline(accountId) {
+        return api.get(`/api/accounts/${accountId}/baseline`);
+    }
+};
+
 // ── Expose globally ───────────────────────────────────────────────────────────
 
 window.Auth = Auth;
@@ -235,5 +246,6 @@ window.SimulatorAPI = SimulatorAPI;
 window.CasesAPI = CasesAPI;
 window.AlertsAPI = AlertsAPI;
 window.AgentAPI = AgentAPI;
+window.GraphAPI = GraphAPI;
 window.sentinelApi = api;
 window.API_CONFIG = API_CONFIG;

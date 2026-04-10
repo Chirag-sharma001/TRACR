@@ -25,6 +25,7 @@
     "react-simple-maps": "^3.0.0",
     "react-tooltip": "^5.30.0",
     "recharts": "^3.8.1",
+    "socket.io-client": "^4.8.3",
     "three": "^0.183.2",
     "three-globe": "^2.45.2"
   },
