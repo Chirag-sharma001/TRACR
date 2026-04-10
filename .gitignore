@@ -3,3 +3,4 @@ backend/node_modules
 .codex/
 .vscode/
 .github/
+frontend/node_modules

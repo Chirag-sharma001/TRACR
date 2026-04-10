@@ -6,10 +6,9 @@ const Case = require("../models/Case");
 function createDashboardRoutes({ jwtMiddleware } = {}) {
     const router = express.Router();
 
-    if (jwtMiddleware) {
-        router.use(jwtMiddleware);
-    }
-
+    // NOTE: overview-metrics is intentionally public (no JWT) so the dashboard
+    // can display live KPIs before / without a full auth flow. All mutation
+    // endpoints are still protected by jwtMiddleware where needed.
     router.get("/overview-metrics", async (req, res) => {
         console.log("Dashboard overview-metrics request received");
         try {

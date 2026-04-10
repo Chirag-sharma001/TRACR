@@ -1,7 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════════════
    SENTINEL AML — Interaction Layer
    Handles: Modals, Toasts, Notification Panel, Global Search,
-            Case Drawer, Tab Filters, Settings Save, Export stubs
+            Case Drawer (real API), Simulator, Tab Filters, Settings,
+            Export stubs, Log Out
+   Requires: api-client.js loaded before this script
    ═══════════════════════════════════════════════════════════════════════ */
 
 // ── 1. TOAST SYSTEM ────────────────────────────────────────────────────
@@ -54,7 +56,6 @@ function closeModal(id) {
   }
 }
 
-// Close modal on backdrop click
 document.addEventListener('click', e => {
   if (e.target.matches('.modal-backdrop')) {
     closeModal(e.target.closest('[id]').id);
@@ -79,47 +80,36 @@ function injectNewCaseModal() {
       </div>
       <div class="space-y-4">
         <div>
-          <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Entity / Subject</label>
-          <input id="nc-entity" type="text" placeholder="e.g., Global Apex Corp" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"/>
+          <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Alert ID (from detection)</label>
+          <input id="nc-alert-id" type="text" placeholder="e.g., alert_id from Alerts page" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"/>
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Subject Account ID</label>
+          <input id="nc-entity" type="text" placeholder="e.g., ACC-SM-001 or entity name" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"/>
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Risk Level</label>
-            <select id="nc-risk" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all">
-              <option>Critical</option>
-              <option>High</option>
-              <option selected>Medium</option>
-              <option>Low</option>
+            <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Assign Analyst</label>
+            <select id="nc-analyst" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all">
+              <option value="analyst">Analyst (default)</option>
+              <option value="admin">Admin</option>
+              <option value="">Unassigned</option>
             </select>
           </div>
           <div>
-            <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Assign Analyst</label>
-            <select id="nc-analyst" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all">
-              <option>Marcus Chen</option>
-              <option>Sarah Jenkins</option>
-              <option>David Miller</option>
-              <option>Elena Rodriguez</option>
-              <option>Unassigned</option>
+            <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Case Type</label>
+            <select id="nc-type" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all">
+              <option>SAR Filing</option>
+              <option>CTR Filing</option>
+              <option>Internal Audit</option>
+              <option>KYC Review</option>
             </select>
           </div>
-        </div>
-        <div>
-          <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Case Type</label>
-          <div class="flex gap-2 flex-wrap">
-            <button class="case-type-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold" onclick="selectCaseType(this)">SAR Filing</button>
-            <button class="case-type-btn px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold" onclick="selectCaseType(this)">CTR Filing</button>
-            <button class="case-type-btn px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold" onclick="selectCaseType(this)">Internal Audit</button>
-            <button class="case-type-btn px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold" onclick="selectCaseType(this)">KYC Review</button>
-          </div>
-        </div>
-        <div>
-          <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Notes</label>
-          <textarea id="nc-notes" rows="3" placeholder="Initial observations, flagged transactions, source of concern…" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all"></textarea>
         </div>
       </div>
       <div class="mt-6 flex gap-3 justify-end">
         <button onclick="closeModal('modal-new-case')" class="px-5 py-2.5 rounded-lg bg-slate-100 text-slate-600 text-sm font-semibold hover:bg-slate-200 transition-colors">Cancel</button>
-        <button onclick="submitNewCase()" class="px-5 py-2.5 rounded-lg text-white text-sm font-semibold shadow-sm hover:opacity-90 transition-all" style="background:linear-gradient(15deg,#3525cd,#4f46e5)">
+        <button onclick="submitNewCase()" id="btn-submit-case" class="px-5 py-2.5 rounded-lg text-white text-sm font-semibold shadow-sm hover:opacity-90 transition-all" style="background:linear-gradient(15deg,#3525cd,#4f46e5)">
           <span class="material-symbols-outlined text-sm align-middle mr-1">add</span>Create Case
         </button>
       </div>
@@ -128,120 +118,91 @@ function injectNewCaseModal() {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-function selectCaseType(btn) {
-  btn.closest('.flex').querySelectorAll('.case-type-btn').forEach(b => {
-    b.className = 'case-type-btn px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold';
-  });
-  btn.className = 'case-type-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold';
-}
-
 async function submitNewCase() {
+  const alertId = document.getElementById('nc-alert-id')?.value?.trim();
   const entity = document.getElementById('nc-entity')?.value?.trim();
-  const risk = document.getElementById('nc-risk')?.value;
   const analyst = document.getElementById('nc-analyst')?.value;
-  const type = document.querySelector('.case-type-btn.bg-indigo-600')?.innerText;
-  const notes = document.getElementById('nc-notes')?.value;
+  const btn = document.getElementById('btn-submit-case');
 
   if (!entity) {
-    toast('Please enter an entity name.', 'error');
+    toast('Please enter a subject account ID.', 'error');
     document.getElementById('nc-entity')?.focus();
     return;
   }
 
+  if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
+
   try {
-    const baseUrl = 'http://localhost:5000';
-    const res = await fetch(`${baseUrl}/api/cases`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-          alert_id: 'MANUAL-ENTRY', // Manual cases need a placeholder alert ID
-          subject_account_id: entity,
-          assigned_to: analyst || null,
-          details: {
-              case_type: type,
-              initial_notes: notes
-          }
-      })
+    const data = await window.CasesAPI.create({
+      alert_id: alertId || 'MANUAL-ENTRY',
+      subject_account_id: entity,
+      assigned_to: analyst || null,
     });
 
-    if (res.ok) {
-        if (window.toast) toast(`Case initialized for "${entity}"`, 'success');
-        closeModal('modal-new-case');
-        if (window.sentinelEngine) window.sentinelEngine.refreshData();
-        setTimeout(() => { if (typeof navigate === 'function') navigate('cases') }, 400);
-    } else {
-        const errBody = await res.json().catch(() => ({}));
-        console.error('Case ledger error:', errBody);
-        
-        if (res.status === 401) {
-            if (window.toast) toast('Unauthorized. Please log in.', 'error');
-            setTimeout(() => { window.location.href = '/' }, 1500);
-        } else {
-            if (window.toast) toast('Failed to create case on ledger.', 'error');
-        }
-    }
+    toast(`Case ${data.case_id?.slice(0,8).toUpperCase()} created.`, 'success');
+    closeModal('modal-new-case');
+    if (window.engine) window.engine.refreshCases();
+    setTimeout(() => { if (typeof navigate === 'function') navigate('cases'); }, 400);
   } catch (err) {
-      console.error('Case submission error:', err);
-      // Fallback logic to show error correctly
-      if (window.toast) toast(`Backbone connection error: ${err.message}`, 'error');
+    toast(`Failed to create case: ${err.message}`, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Create Case'; }
   }
 }
 
-// Expose openNewCase globally
 window.openNewCase = function() {
   injectNewCaseModal();
   setTimeout(() => openModal('modal-new-case'), 10);
 };
 
 // ── 4. NOTIFICATION PANEL ──────────────────────────────────────────────
-const NOTIFICATIONS = [
-  { icon: 'flag', color: 'text-error', bg: 'bg-error-container', title: 'Rapid Shell Inflow Detected', body: 'Entity: Apex Logistics Inc. — Risk score 94', time: '2m ago', unread: true },
-  { icon: 'account_tree', color: 'text-secondary', bg: 'bg-secondary-fixed', title: 'Layering Pattern Confirmed', body: 'Entity: Marcus V. Silva — Medium confidence', time: '45m ago', unread: true },
-  { icon: 'payments', color: 'text-error', bg: 'bg-error-container', title: 'Structuring Burst — 14 transactions', body: 'Multiple cash deposits sub-threshold', time: '1h ago', unread: true },
-  { icon: 'language', color: 'text-tertiary', bg: 'bg-tertiary-fixed', title: 'High-Risk Geo Transfer', body: 'Entity: Global Trade Ltd. — Cayman Islands', time: '3h ago', unread: false },
-  { icon: 'verified_user', color: 'text-primary', bg: 'bg-primary-fixed', title: 'KYC Renewal Required', body: 'External Auditor access expires in 7 days', time: '5h ago', unread: false },
-];
-
-function injectNotificationPanel() {
-  if (document.getElementById('notif-panel')) return;
-  
-  // Use real alerts from engine if available
-  const displayAlerts = (window.sentinelEngine && window.sentinelEngine.alerts.length > 0) 
-    ? window.sentinelEngine.alerts 
-    : NOTIFICATIONS;
-
-  const items = displayAlerts.map(n => {
+function buildNotifItems() {
+  const engine = window.engine || window.sentinelEngine;
+  const alerts = (engine && engine.alerts && engine.alerts.length > 0) ? engine.alerts : [];
+  if (alerts.length === 0) {
+    return `<div class="px-5 py-8 text-center text-sm text-slate-400">No recent alerts.<br/>Alerts appear here in real-time.</div>`;
+  }
+  return alerts.slice(0, 8).map(n => {
     const isReal = !!n.risk_tier;
-    const icon = isReal ? (window.sentinelEngine ? window.sentinelEngine.getIconForPattern(n.anomalies[0]?.pattern_type || '') : 'flag') : n.icon;
-    const color = isReal ? (n.risk_tier === 'HIGH' ? 'text-error' : 'text-secondary') : n.color;
-    const bg = isReal ? (n.risk_tier === 'HIGH' ? 'bg-error-container' : 'bg-secondary/10') : n.bg;
-    const title = isReal ? (window.sentinelEngine ? window.sentinelEngine.formatPattern(n.anomalies[0]?.pattern_type || 'Suspicious Flow') : n.title) : n.title;
-    const body = isReal ? `Entity: ${n.subject_account_id} — Score ${Math.round(n.risk_score)}` : n.body;
-    const time = isReal ? (window.sentinelEngine ? window.sentinelEngine.timeAgo(n.timestamp) : n.time) : n.time;
+    const icon = isReal ? (n.pattern_type?.includes('CIRCULAR') ? 'loop' : n.pattern_type?.includes('SMURFING') ? 'groups' : 'flag') : (n.icon || 'flag');
+    const color = isReal ? (n.risk_tier === 'HIGH' ? 'text-error' : 'text-secondary') : (n.color || 'text-primary');
+    const bg = isReal ? (n.risk_tier === 'HIGH' ? 'bg-error-container' : 'bg-secondary/10') : (n.bg || 'bg-primary-fixed');
+    const title = isReal ? (n.pattern_type || 'Suspicious Flow').split('_').map(w => w[0] + w.slice(1).toLowerCase()).join(' ') : (n.title || 'Alert');
+    const body = isReal ? `Account: ${n.subject_account_id} — Score ${Math.round(n.risk_score || 0)}` : (n.body || '');
+    const time = isReal ? _timeAgo(n.created_at) : (n.time || '');
 
     return `
-    <div class="flex gap-4 px-5 py-4 hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-50 last:border-0">
+    <div class="flex gap-4 px-5 py-4 hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-50 last:border-0" onclick="navigate('live'); toggleNotifications();">
       <div class="w-9 h-9 rounded-full ${bg} flex-shrink-0 flex items-center justify-center">
         <span class="material-symbols-outlined ${color} text-lg" style="font-variation-settings:'FILL' 1;">${icon}</span>
       </div>
       <div class="flex-1 min-w-0">
-        <div class="flex justify-between items-start gap-2">
-          <p class="text-xs font-bold text-slate-800 leading-snug">${title}</p>
-        </div>
+        <p class="text-xs font-bold text-slate-800 leading-snug">${title}</p>
         <p class="text-[11px] text-slate-500 mt-0.5 truncate">${body}</p>
         <p class="text-[10px] text-slate-400 mt-1">${time}</p>
       </div>
     </div>`;
   }).join('');
+}
 
+function _timeAgo(date) {
+  const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+  if (seconds < 60) return 'Just now';
+  const m = Math.floor(seconds / 60);
+  if (m < 60) return `${m}m ago`;
+  return `${Math.floor(m / 60)}h ago`;
+}
+
+function injectNotificationPanel() {
+  if (document.getElementById('notif-panel')) {
+    document.getElementById('notif-items').innerHTML = buildNotifItems();
+    return;
+  }
   const html = `
   <div id="notif-panel" class="hidden fixed top-16 right-4 z-[100] w-96 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
     <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
       <div class="flex items-center gap-2">
         <h3 class="text-sm font-bold text-slate-900">Notifications</h3>
-        <span class="px-1.5 py-0.5 bg-indigo-600 text-white text-[10px] font-bold rounded-full">3</span>
       </div>
       <div class="flex gap-2">
         <button onclick="markAllRead()" class="text-[10px] font-bold text-indigo-600 hover:underline">Mark all read</button>
@@ -250,9 +211,9 @@ function injectNotificationPanel() {
         </button>
       </div>
     </div>
-    <div class="max-h-96 overflow-y-auto">${items}</div>
+    <div id="notif-items" class="max-h-96 overflow-y-auto">${buildNotifItems()}</div>
     <div class="px-5 py-3 bg-slate-50 border-t border-slate-100 text-center">
-      <button class="text-xs font-bold text-indigo-600 hover:underline">View all activity log</button>
+      <button onclick="navigate('live'); toggleNotifications();" class="text-xs font-bold text-indigo-600 hover:underline">View all alerts</button>
     </div>
   </div>`;
   document.body.insertAdjacentHTML('beforeend', html);
@@ -264,19 +225,16 @@ window.toggleNotifications = function() {
   const panel = document.getElementById('notif-panel');
   notifOpen = !notifOpen;
   panel.classList.toggle('hidden', !notifOpen);
+  if (notifOpen) {
+    document.getElementById('notif-items').innerHTML = buildNotifItems();
+  }
 };
 
 window.markAllRead = function() {
-  document.querySelectorAll('#notif-panel .bg-indigo-50\\/30').forEach(el => el.classList.remove('bg-indigo-50/30'));
-  document.querySelectorAll('#notif-panel .bg-indigo-600.rounded-full.flex-shrink-0').forEach(el => el.remove());
-  const badge = document.querySelector('#notif-panel h3 + span');
-  if (badge) badge.remove();
-  // Hide badge on bell
   document.querySelectorAll('.badge-pulse').forEach(b => b.classList.add('opacity-0'));
   toast('All notifications marked as read', 'success', 2000);
 };
 
-// Close panel when clicking outside
 document.addEventListener('click', e => {
   if (notifOpen && !e.target.closest('#notif-panel') && !e.target.closest('[title="Notifications"]')) {
     notifOpen = false;
@@ -290,12 +248,10 @@ const SEARCH_INDEX = [
   { label: 'Live Monitoring — Transaction Stream', icon: 'monitor_heart', page: 'live', match: 'live monitoring transaction stream throughput' },
   { label: 'Network Analysis — Entity Inspector', icon: 'hub', page: 'network', match: 'network analysis entity graph nodes' },
   { label: 'Behavioral Analysis — Radar', icon: 'psychology', page: 'behavioral', match: 'behavioral analysis radar xai pattern' },
-  { label: 'Case Management — CASE-8829-102', icon: 'work', page: 'cases', match: 'case management investigation global vertex' },
-  { label: 'Case Management — CASE-7712-404', icon: 'work', page: 'cases', match: 'case elena moretti SAR filing' },
+  { label: 'Case Management', icon: 'work', page: 'cases', match: 'case management investigation global vertex' },
   { label: 'Compliance Reports', icon: 'assessment', page: 'reports', match: 'reports compliance SAR CTR audit filing' },
+  { label: 'Anomaly Simulator', icon: 'science', page: 'simulator', match: 'simulator smurfing circular trading inject anomaly' },
   { label: 'System Settings — AI Sensitivity', icon: 'settings', page: 'settings', match: 'settings sensitivity permission audit' },
-  { label: 'Alert: Rapid Shell Inflow', icon: 'flag', page: 'live', match: 'alert rapid shell inflow apex logistics' },
-  { label: 'Alert: Layering Detection', icon: 'account_tree', page: 'behavioral', match: 'alert layering detection marcus silva' },
 ];
 
 function injectSearchDropdown() {
@@ -306,7 +262,6 @@ function injectSearchDropdown() {
     <div class="px-4 py-2 bg-slate-50 border-t border-slate-100 text-[10px] text-slate-400 font-medium">Press <kbd class="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[9px] font-mono">Enter</kbd> to search · <kbd class="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[9px] font-mono">Esc</kbd> to close</div>
   </div>`;
   document.querySelector('#global-search')?.parentElement?.insertAdjacentHTML('afterend', html);
-  // Make parent relative
   document.querySelector('#global-search')?.parentElement?.classList.add('relative');
 }
 
@@ -318,7 +273,6 @@ if (searchInput) {
     const dd = document.getElementById('search-dropdown');
     const results = document.getElementById('search-results');
     if (!q) { dd.classList.add('hidden'); return; }
-
     const hits = SEARCH_INDEX.filter(item => item.match.includes(q) || item.label.toLowerCase().includes(q));
     if (!hits.length) {
       results.innerHTML = `<div class="px-4 py-6 text-center text-sm text-slate-400">No results for "<span class="font-semibold">${q}</span>"</div>`;
@@ -331,10 +285,7 @@ if (searchInput) {
     }
     dd.classList.remove('hidden');
   });
-
-  searchInput.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeSearch();
-  });
+  searchInput.addEventListener('keydown', e => { if (e.key === 'Escape') closeSearch(); });
 }
 
 window.closeSearch = function() {
@@ -348,14 +299,9 @@ document.addEventListener('click', e => {
   }
 });
 
-// ── 6. CASE DETAIL SIDE DRAWER ─────────────────────────────────────────
-const CASE_DATA = {
-  'CASE-8829-102': { entity: 'Global Vertex Holdings LLC', risk: 'Critical', status: 'Investigation In Progress', analyst: 'Marcus Chen', amount: '₹2.4M', since: 'Oct 10, 2023', desc: 'Multi-layered offshore wire transfers to Cayman and BVI entities. Pattern consistent with trade-based money laundering.' },
-  'CASE-7712-404': { entity: 'Elena Moretti', risk: 'Medium', status: 'Pending SAR Filing', analyst: 'Sarah Jenkins', amount: '₹1.8L', since: 'Oct 18, 2023', desc: 'Unusual cash deposits followed by immediate international transfers. Geographic velocity anomaly detected.' },
-  'CASE-9021-332': { entity: 'Argo Maritime Logistics', risk: 'Low', status: 'Initial Review', analyst: 'Unassigned', amount: '₹42K', since: 'Oct 22, 2023', desc: 'Flagged due to industry peer outlier analysis. No confirmed suspicious activity yet. Pending KYC documentation.' },
-  'CASE-4423-901': { entity: 'Techno-Core Systems Inc.', risk: 'Critical', status: 'Internal Audit', analyst: 'David Miller', amount: '₹5.1M', since: 'Oct 5, 2023', desc: 'Rapid cycling of funds across 7 shell companies. Cryptocurrency off-ramp detected via DEX swap.' },
-  'CASE-1209-661': { entity: 'Jameson Estate Fund', risk: 'Medium', status: 'Information Requested', analyst: 'Elena Rodriguez', amount: '₹6.2L', since: 'Oct 19, 2023', desc: 'Real estate purchase pattern inconsistent with declared income. Source of wealth documentation requested.' },
-};
+// ── 6. CASE DETAIL SIDE DRAWER (Real API) ──────────────────────────────
+let _currentCaseId = null;
+let _currentCaseData = null;
 
 function injectCaseDrawer() {
   if (document.getElementById('case-drawer')) return;
@@ -372,24 +318,33 @@ function injectCaseDrawer() {
     </div>
     <div class="flex-1 overflow-y-auto px-6 py-6 space-y-6">
       <div class="grid grid-cols-3 gap-3">
-        <div class="bg-slate-50 rounded-xl p-4"><p class="text-[10px] text-slate-400 uppercase font-bold mb-1">Risk</p><p id="cd-risk" class="text-sm font-extrabold"></p></div>
-        <div class="bg-slate-50 rounded-xl p-4"><p class="text-[10px] text-slate-400 uppercase font-bold mb-1">Amount</p><p id="cd-amount" class="text-sm font-extrabold text-indigo-700"></p></div>
-        <div class="bg-slate-50 rounded-xl p-4"><p class="text-[10px] text-slate-400 uppercase font-bold mb-1">Since</p><p id="cd-since" class="text-xs font-bold text-slate-600"></p></div>
+        <div class="bg-slate-50 rounded-xl p-4"><p class="text-[10px] text-slate-400 uppercase font-bold mb-1">State</p><p id="cd-risk" class="text-sm font-extrabold"></p></div>
+        <div class="bg-slate-50 rounded-xl p-4"><p class="text-[10px] text-slate-400 uppercase font-bold mb-1">Escalation</p><p id="cd-amount" class="text-sm font-extrabold text-indigo-700"></p></div>
+        <div class="bg-slate-50 rounded-xl p-4"><p class="text-[10px] text-slate-400 uppercase font-bold mb-1">Created</p><p id="cd-since" class="text-xs font-bold text-slate-600"></p></div>
       </div>
-      <div><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Status</p><p id="cd-status" class="text-sm font-semibold text-slate-800"></p></div>
       <div><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Assigned Analyst</p><p id="cd-analyst" class="text-sm font-semibold text-slate-800"></p></div>
-      <div><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Investigation Summary</p><p id="cd-desc" class="text-sm text-slate-600 leading-relaxed"></p></div>
+      <div><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Alert ID</p><p id="cd-alert" class="text-xs font-mono text-slate-600 break-all"></p></div>
       <div>
         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Quick Actions</p>
         <div class="flex flex-wrap gap-2">
-          <button onclick="toast('SAR filing workflow initiated.','info'); closeCaseDrawer();" class="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-lg hover:bg-indigo-100 transition-colors">File SAR</button>
-          <button onclick="toast('Case escalated to Senior Compliance Officer.','warn'); closeCaseDrawer();" class="px-3 py-1.5 bg-amber-50 text-amber-700 text-xs font-bold rounded-lg hover:bg-amber-100 transition-colors">Escalate</button>
-          <button onclick="toast('Case marked closed. Audit trail updated.','success'); closeCaseDrawer();" class="px-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-200 transition-colors">Close Case</button>
-          <button onclick="navigate('behavioral'); closeCaseDrawer();" class="px-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-200 transition-colors">View Profile</button>
+          <button id="cd-btn-sar" onclick="caseDraftSAR()" class="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-1">
+            <span class="material-symbols-outlined text-xs">description</span>Generate SAR
+          </button>
+          <button id="cd-btn-escalate" onclick="caseEscalate()" class="px-3 py-1.5 bg-amber-50 text-amber-700 text-xs font-bold rounded-lg hover:bg-amber-100 transition-colors flex items-center gap-1">
+            <span class="material-symbols-outlined text-xs">arrow_upward</span>Escalate
+          </button>
+          <button id="cd-btn-close" onclick="caseClose()" class="px-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-200 transition-colors flex items-center gap-1">
+            <span class="material-symbols-outlined text-xs">cancel</span>Dismiss Case
+          </button>
+          <button onclick="navigate('behavioral'); closeCaseDrawer();" class="px-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-200 transition-colors">Behavioral Profile</button>
         </div>
       </div>
+      <div id="cd-sar-result" class="hidden p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+        <p class="text-[10px] font-bold text-indigo-800 uppercase mb-1">SAR Draft Generated</p>
+        <p id="cd-sar-id" class="text-xs font-mono text-indigo-700"></p>
+      </div>
       <div class="pt-4 border-t border-slate-100">
-        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Add Note</p>
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Add Investigation Note</p>
         <textarea id="cd-note" rows="3" placeholder="Add investigation note…" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all"></textarea>
         <button onclick="saveNote()" class="mt-2 w-full py-2 text-xs font-bold text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors">Save Note</button>
       </div>
@@ -399,46 +354,191 @@ function injectCaseDrawer() {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-window.openCaseDrawer = function(caseId) {
+window._openCaseRow = async function(caseId, el) {
   injectCaseDrawer();
-  const data = CASE_DATA[caseId];
-  if (!data) return;
-  document.getElementById('cd-id').textContent = caseId;
-  document.getElementById('cd-entity').textContent = data.entity;
-  document.getElementById('cd-risk').textContent = data.risk;
-  document.getElementById('cd-amount').textContent = data.amount;
-  document.getElementById('cd-since').textContent = data.since;
-  document.getElementById('cd-status').textContent = data.status;
-  document.getElementById('cd-analyst').textContent = data.analyst;
-  document.getElementById('cd-desc').textContent = data.desc;
-  document.getElementById('cd-note').value = '';
+  try {
+    const c = await window.CasesAPI.getById(caseId);
+    _currentCaseId = caseId;
+    _currentCaseData = c;
 
-  const riskEl = document.getElementById('cd-risk');
-  const colorMap = { Critical: 'text-red-600', High: 'text-orange-600', Medium: 'text-amber-600', Low: 'text-emerald-600' };
-  riskEl.className = `text-sm font-extrabold ${colorMap[data.risk] || ''}`;
+    document.getElementById('cd-id').textContent = caseId.slice(0,8).toUpperCase();
+    document.getElementById('cd-entity').textContent = c.subject_account_id || caseId;
+    document.getElementById('cd-risk').textContent = c.state || '—';
+    document.getElementById('cd-amount').textContent = c.escalation_state || 'ON_TRACK';
+    document.getElementById('cd-since').textContent = c.created_at ? new Date(c.created_at).toLocaleDateString() : '—';
+    document.getElementById('cd-analyst').textContent = c.assigned_to || 'Unassigned';
+    document.getElementById('cd-alert').textContent = c.alert_id || '—';
+    document.getElementById('cd-note').value = '';
+    document.getElementById('cd-sar-result')?.classList.add('hidden');
 
-  document.getElementById('case-drawer').classList.remove('hidden');
-  document.getElementById('case-drawer-overlay').classList.remove('hidden');
+    document.getElementById('case-drawer').classList.remove('hidden');
+    document.getElementById('case-drawer-overlay').classList.remove('hidden');
+  } catch (err) {
+    toast(`Could not load case: ${err.message}`, 'error');
+  }
 };
+
+window.openCaseDrawer = window._openCaseRow;
 
 window.closeCaseDrawer = function() {
   document.getElementById('case-drawer')?.classList.add('hidden');
   document.getElementById('case-drawer-overlay')?.classList.add('hidden');
+  _currentCaseId = null;
+  _currentCaseData = null;
 };
 
-window.saveNote = function() {
+window.caseDraftSAR = async function() {
+  if (!_currentCaseId) return;
+  const btn = document.getElementById('cd-btn-sar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+  try {
+    const result = await window.CasesAPI.generateSAR(_currentCaseId);
+    toast(`SAR draft ${result.sar_id?.slice(0,8).toUpperCase()} created`, 'success');
+    const sarResult = document.getElementById('cd-sar-result');
+    if (sarResult) {
+      sarResult.classList.remove('hidden');
+      document.getElementById('cd-sar-id').textContent = `SAR ID: ${result.sar_id}`;
+    }
+    if (window.engine) window.engine.refreshCases();
+  } catch (err) {
+    toast(`SAR generation failed: ${err.message}`, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined text-xs">description</span>Generate SAR'; }
+  }
+};
+
+window.caseEscalate = async function() {
+  if (!_currentCaseId || !_currentCaseData) return;
+  const allowedTransitions = {
+    OPEN: 'UNDER_REVIEW',
+    UNDER_REVIEW: 'ESCALATED',
+  };
+  const toState = allowedTransitions[_currentCaseData.state];
+  if (!toState) {
+    toast(`Cannot escalate case in state: ${_currentCaseData.state}`, 'warn');
+    return;
+  }
+  const btn = document.getElementById('cd-btn-escalate');
+  if (btn) { btn.disabled = true; btn.textContent = 'Escalating…'; }
+  try {
+    await window.CasesAPI.transition(_currentCaseId, toState, 'ANALYST_ESCALATION');
+    toast(`Case moved to ${toState}`, 'success');
+    closeCaseDrawer();
+    if (window.engine) window.engine.refreshCases();
+  } catch (err) {
+    toast(`Escalation failed: ${err.message}`, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined text-xs">arrow_upward</span>Escalate'; }
+  }
+};
+
+window.caseClose = async function() {
+  if (!_currentCaseId) return;
+  const btn = document.getElementById('cd-btn-close');
+  if (btn) { btn.disabled = true; btn.textContent = 'Closing…'; }
+  try {
+    await window.CasesAPI.transition(_currentCaseId, 'CLOSED_DISMISSED', 'NO_SUSPICIOUS_ACTIVITY', {
+      no_file_rationale: 'Dismissed by analyst after review. No sufficient evidence for SAR filing.',
+    });
+    toast('Case dismissed and closed.', 'success');
+    closeCaseDrawer();
+    if (window.engine) window.engine.refreshCases();
+  } catch (err) {
+    toast(`Close failed: ${err.message}`, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined text-xs">cancel</span>Dismiss Case'; }
+  }
+};
+
+window.saveNote = async function() {
+  if (!_currentCaseId) return;
   const note = document.getElementById('cd-note')?.value?.trim();
-  if (!note) return;
-  toast('Investigation note saved to case docket.', 'success');
-  document.getElementById('cd-note').value = '';
+  if (!note) { toast('Please enter a note.', 'warn'); return; }
+  try {
+    await window.CasesAPI.addNote(_currentCaseId, note);
+    toast('Investigation note saved to case docket.', 'success');
+    document.getElementById('cd-note').value = '';
+  } catch (err) {
+    toast(`Note save failed: ${err.message}`, 'error');
+  }
 };
 
-// ── 7. WIRE UP BUTTONS AFTER PAGE RENDER ──────────────────────────────
-// Called by navigate() after DOM injection
+// ── 7. LOG OUT ─────────────────────────────────────────────────────────
+window.handleLogout = function() {
+  if (window.Auth) {
+    window.Auth.logout(); // clears token + redirects
+  } else {
+    localStorage.removeItem('tracr_auth_token');
+    localStorage.removeItem('tracr_auth_user');
+    window.location.href = '/';
+  }
+};
+
+// ── 8. SIMULATOR INTERACTIONS ─────────────────────────────────────────
+window.triggerSimulator = async function(type, btnId) {
+  const btn = document.getElementById(btnId);
+  const logEl = document.getElementById('sim-log');
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Injecting…'; }
+  if (logEl) {
+    const ts = new Date().toLocaleTimeString();
+    logEl.innerHTML = `<div class="text-amber-400 font-mono text-[11px]">[${ts}] Triggering ${type}...</div>` + logEl.innerHTML;
+  }
+
+  try {
+    const result = await window.SimulatorAPI.triggerAnomaly(type);
+    toast(`${type.replace('_', ' ')}: ${result.message || 'Injected successfully'}`, 'success', 4000);
+    if (logEl) {
+      const ts = new Date().toLocaleTimeString();
+      const txCount = result.count || '?';
+      logEl.innerHTML =
+        `<div class="text-emerald-400 font-mono text-[11px]">[${ts}] ✅ ${type} — ${txCount} txs injected. Detection running...</div>` +
+        logEl.innerHTML;
+    }
+    // Refresh metrics after 3s (detection takes a moment)
+    setTimeout(() => {
+      if (window.engine) window.engine.refreshData();
+    }, 3000);
+  } catch (err) {
+    toast(`Simulator error: ${err.message}`, 'error');
+    if (logEl) {
+      const ts = new Date().toLocaleTimeString();
+      logEl.innerHTML = `<div class="text-red-400 font-mono text-[11px]">[${ts}] ❌ Failed: ${err.message}</div>` + logEl.innerHTML;
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = type === 'SMURFING' ? 'Inject Smurfing Cluster' : 'Inject Circular Trade';
+    }
+  }
+};
+
+window.triggerAIAnalysis = async function() {
+  const btn = document.getElementById('btn-ai-analyze');
+  const logEl = document.getElementById('sim-log');
+  if (btn) { btn.disabled = true; btn.textContent = 'Analyzing…'; }
+  try {
+    const health = await window.AgentAPI.health();
+    const ts = new Date().toLocaleTimeString();
+    if (logEl) {
+      logEl.innerHTML = `<div class="text-indigo-400 font-mono text-[11px]">[${ts}] 🤖 AI Agent: ${JSON.stringify(health)}</div>` + logEl.innerHTML;
+    }
+    toast('AI Agent is online and ready.', 'success');
+  } catch (err) {
+    const ts = new Date().toLocaleTimeString();
+    if (logEl) {
+      logEl.innerHTML = `<div class="text-yellow-400 font-mono text-[11px]">[${ts}] ⚠️ AI Agent offline: ${err.message}</div>` + logEl.innerHTML;
+    }
+    toast('AI Agent service not reachable. Start uvicorn on port 8000.', 'warn', 5000);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Test AI Agent Health'; }
+  }
+};
+
+// ── 9. WIRE UP BUTTONS AFTER PAGE RENDER ──────────────────────────────
 window.wirePageInteractions = function(page) {
   if (page === 'overview' || page === 'cases') {
-    // Wire "New Case" buttons
-    document.querySelectorAll('[id="btn-new-case"], button').forEach(btn => {
+    document.querySelectorAll('button').forEach(btn => {
       if (btn.textContent.includes('New Case') || btn.textContent.includes('Initialize New Case')) {
         btn.addEventListener('click', () => window.openNewCase(), { once: true });
       }
@@ -446,16 +546,7 @@ window.wirePageInteractions = function(page) {
   }
 
   if (page === 'cases') {
-    // Wire case rows
-    document.querySelectorAll('table tbody tr').forEach(row => {
-      const caseId = row.querySelector('td span.font-bold')?.textContent?.trim();
-      if (caseId && CASE_DATA[caseId]) {
-        row.style.cursor = 'pointer';
-        row.addEventListener('click', () => window.openCaseDrawer(caseId));
-      }
-    });
-
-    // Wire tab filter buttons
+    // Tab filter buttons
     document.querySelectorAll('[class*="tracking-wider"][class*="rounded-lg"]').forEach(btn => {
       if (['All Cases','Flagged','Under Review','Closed'].includes(btn.textContent.trim())) {
         btn.addEventListener('click', function() {
@@ -470,10 +561,9 @@ window.wirePageInteractions = function(page) {
   }
 
   if (page === 'reports') {
-    // Export PDF
     document.querySelectorAll('button').forEach(btn => {
       if (btn.textContent.includes('Export PDF')) {
-        btn.addEventListener('click', () => toast('Generating PDF report… download will begin shortly.', 'info'), { once: true });
+        btn.addEventListener('click', () => toast('Generating PDF report…', 'info'), { once: true });
       }
       if (btn.textContent.includes('New Filing')) {
         btn.addEventListener('click', () => toast('Filing wizard coming soon.', 'info'), { once: true });
@@ -482,7 +572,6 @@ window.wirePageInteractions = function(page) {
   }
 
   if (page === 'live') {
-    // Historical Export
     document.querySelectorAll('button').forEach(btn => {
       if (btn.textContent.includes('Historical Export')) {
         btn.addEventListener('click', () => toast('Exporting historical data as CSV…', 'info'), { once: true });
@@ -503,24 +592,13 @@ window.wirePageInteractions = function(page) {
         btn.addEventListener('click', () => toast('Identity verification request sent.', 'info'));
       }
     });
-
-    // Emergency button
-    document.querySelector('button[title]') || document.querySelectorAll('.fixed.bottom-8').forEach(btn => {
-      if (btn.querySelector('.material-symbols-outlined')?.textContent === 'emergency') {
-        btn.addEventListener('click', () => toast('Emergency freeze protocol activated! Compliance team notified.', 'error', 5000));
-      }
-    });
   }
 
   if (page === 'settings') {
-    // Save button
-    document.querySelectorAll('.fixed.bottom-8 button, button').forEach(btn => {
-      if (btn.querySelector('.material-symbols-outlined')?.textContent === 'save') {
+    document.querySelectorAll('button').forEach(btn => {
+      if (btn.querySelector && btn.querySelector('.material-symbols-outlined')?.textContent === 'save') {
         btn.addEventListener('click', () => toast('Settings saved. AI model re-indexed successfully.', 'success'));
       }
-    });
-    // Re-index button
-    document.querySelectorAll('button').forEach(btn => {
       if (btn.textContent.includes('Re-Index Ledger')) {
         btn.addEventListener('click', () => {
           toast('Ledger re-indexing started. ETA: ~2 minutes.', 'info');
@@ -533,15 +611,9 @@ window.wirePageInteractions = function(page) {
           }, 4000);
         });
       }
-      if (btn.textContent.includes('Manage Backups')) {
-        btn.addEventListener('click', () => toast('Backup manager opening…', 'info', 2000));
-      }
-      if (btn.textContent.includes('Invite Analyst')) {
-        btn.addEventListener('click', () => toast('Analyst invitation workflow coming soon.', 'info'));
-      }
-      if (btn.textContent.includes('Export CSV')) {
-        btn.addEventListener('click', () => toast('Exporting audit log as CSV…', 'info'));
-      }
+      if (btn.textContent.includes('Manage Backups')) btn.addEventListener('click', () => toast('Backup manager opening…', 'info', 2000));
+      if (btn.textContent.includes('Invite Analyst')) btn.addEventListener('click', () => toast('Analyst invitation workflow coming soon.', 'info'));
+      if (btn.textContent.includes('Export CSV')) btn.addEventListener('click', () => toast('Exporting audit log as CSV…', 'info'));
     });
   }
 
@@ -559,18 +631,23 @@ window.wirePageInteractions = function(page) {
         btn.addEventListener('click', () => toast('Exporting behavioral audit trail…', 'info'), { once: true });
       }
     });
-    document.querySelectorAll('button[class*="more_vert"],.material-symbols-outlined').forEach(icon => {
-      if (icon.textContent === 'more_vert') {
-        icon.parentElement?.addEventListener('click', () => toast('Row actions menu coming soon.', 'info', 1500));
-      }
-    });
   }
 };
 
-// ── 8. NOTIFICATION BELL WIRING ────────────────────────────────────────
+// ── 10. NOTIFICATION BELL WIRING ──────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   const bell = document.querySelector('[title="Notifications"]');
   if (bell) bell.addEventListener('click', () => window.toggleNotifications());
+
+  // Wire Log Out button
+  document.querySelectorAll('a, button').forEach(el => {
+    if (el.textContent?.trim() === 'Log Out') {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.handleLogout();
+      });
+    }
+  });
 });
 
 // Also wire since DOMContentLoaded may have already fired
@@ -582,7 +659,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 })();
 
-// ── 9. KEYBOARD SHORTCUTS ─────────────────────────────────────────────
+// ── 11. KEYBOARD SHORTCUTS ─────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
     e.preventDefault();
@@ -596,5 +673,5 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// ── 10. EXPOSE HELPERS ────────────────────────────────────────────────
+// ── 12. EXPOSE HELPERS ────────────────────────────────────────────────
 window._sentinel = { toast, openModal, closeModal };

@@ -42,6 +42,34 @@ const {
 } = require("./routes");
 
 const SocketGateway = require("./realtime/SocketGateway");
+const User = require("./models/User");
+
+// ── Demo User Seeder ──────────────────────────────────────────────────────────
+// Seeds admin + analyst users when running with in-memory MongoDB (no Atlas).
+async function seedDemoUsers() {
+    const bcrypt = require("bcrypt");
+    const { v4: uuidv4 } = require("uuid");
+    const DEMO_USERS = [
+        { username: "admin", role: "ADMIN" },
+        { username: "analyst", role: "ANALYST" },
+    ];
+    const DEMO_PASSWORD = "Password123!";
+    const hash = await bcrypt.hash(DEMO_PASSWORD, 10);
+    for (const u of DEMO_USERS) {
+        const exists = await User.findOne({ username: u.username }).lean();
+        if (!exists) {
+            await User.create({
+                user_id: uuidv4(),
+                username: u.username,
+                password_hash: hash,
+                role: u.role,
+                is_active: true,
+            });
+            console.log(`demo_user_seeded { username: '${u.username}', role: '${u.role}' }`);
+        }
+    }
+}
+
 
 async function createServer() {
     const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/intelligent_aml";
@@ -65,6 +93,8 @@ async function createServer() {
             socketTimeoutMS: 45000,
         });
         console.log("Connected to fallback memory MongoDB.");
+        // Auto-seed demo users in memory DB so login works without Atlas
+        await seedDemoUsers();
     }
 
     await seedDefaultConfig();
@@ -130,7 +160,7 @@ async function createServer() {
         })
     );
     app.use("/api/dashboard", createDashboardRoutes({ jwtMiddleware }));
-    app.use("/api/simulator", createSimulatorRoutes({ jwtMiddleware, auditLogger }));
+    app.use("/api/simulator", createSimulatorRoutes({ auditLogger }));
     app.use("/api/sar", createSARRoutes({ jwtMiddleware, auditLogger }));
 
     app.get("/health", (_req, res) => {
