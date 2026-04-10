@@ -66,6 +66,13 @@ class TransactionSimulator {
                 await this.postTransaction(item);
             }
         }
+
+        if (Math.random() < 0.02) {
+            const chain = this.generateCashToCryptoChain();
+            for (const item of chain) {
+                await this.postTransaction(item);
+            }
+        }
     }
 
     generateTransaction() {
@@ -177,6 +184,53 @@ class TransactionSimulator {
         }
 
         return chain;
+    }
+
+    generateCashToCryptoChain() {
+        const cashSender = this.#accountId();
+        const middleman = this.#accountId();
+        const cryptoWallet = `WALLET-${randomUUID().slice(0, 8).toUpperCase()}`;
+        
+        const start = Date.now();
+        
+        return [
+            {
+                transaction_id: randomUUID(),
+                sender_account_id: cashSender,
+                receiver_account_id: middleman,
+                amount: this.#randInt(8000, 15000),
+                currency: "USD",
+                timestamp: new Date(start).toISOString(),
+                transaction_type: "CASH",
+                geolocation: {
+                    sender_country: this.#pick(COUNTRIES),
+                    receiver_country: this.#pick(COUNTRIES),
+                },
+                channel: "BRANCH",
+                device_id: this.#deviceId(),
+                is_synthetic: true,
+                pattern_tag: "CASH_TO_CRYPTO",
+                metadata: { ground_truth: "CASH_TO_CRYPTO_TARGET" },
+            },
+            {
+                transaction_id: randomUUID(),
+                sender_account_id: middleman,
+                receiver_account_id: cryptoWallet,
+                amount: this.#randInt(7500, 14500),
+                currency: "USD",
+                timestamp: new Date(start + this.#randInt(1000 * 60, 1000 * 60 * 60 * 2)).toISOString(),
+                transaction_type: "CRYPTO",
+                geolocation: {
+                    sender_country: this.#pick(COUNTRIES),
+                    receiver_country: this.#pick(COUNTRIES),
+                },
+                channel: "ONLINE",
+                device_id: this.#deviceId(),
+                is_synthetic: true,
+                pattern_tag: "CASH_TO_CRYPTO",
+                metadata: { ground_truth: "CASH_TO_CRYPTO_TARGET" },
+            }
+        ];
     }
 
     async postTransaction(tx) {

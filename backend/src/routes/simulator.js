@@ -60,10 +60,30 @@ function createSimulatorRoutes({ jwtMiddleware, auditLogger = null } = {}) {
 
                 return res.json({ ok: true, message: "Injected 1 Circular Trading Loop", count: chain.length });
 
+            } else if (type === "CASH_TO_CRYPTO") {
+                const chain = sim.generateCashToCryptoChain();
+                for (const tx of chain) {
+                    await sim.postTransaction(tx);
+                }
+
+                if (auditLogger && req.user) {
+                    await auditLogger.log({
+                        userId: req.user.user_id,
+                        userRole: req.user.role,
+                        actionType: "SIMULATOR_TRIGGER",
+                        resourceType: "SIMULATOR",
+                        resourceId: "CASH_TO_CRYPTO",
+                        outcome: "SUCCESS",
+                        ipAddress: req.ip,
+                    });
+                }
+
+                return res.json({ ok: true, message: "Injected 1 Cash-to-Crypto Flow", count: chain.length });
+
             } else {
                 return res.status(400).json({
                     error: "invalid_type",
-                    valid_types: ["SMURFING", "CIRCULAR_TRADING"],
+                    valid_types: ["SMURFING", "CIRCULAR_TRADING", "CASH_TO_CRYPTO"],
                 });
             }
         } catch (err) {

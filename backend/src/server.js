@@ -17,6 +17,7 @@ const CycleDetector = require("./detection/CycleDetector");
 const { SmurfingDetector } = require("./detection/SmurfingDetector");
 const { BehavioralProfiler } = require("./detection/BehavioralProfiler");
 const DetectionOrchestrator = require("./detection/DetectionOrchestrator");
+const CryptoConversionDetector = require("./detection/CryptoConversionDetector");
 
 const { thresholdConfig } = require("./scoring/ThresholdConfig");
 const { seedDefaultConfig } = require("./scoring/seedDefaultConfig");
@@ -121,6 +122,7 @@ async function createServer() {
     const cycleDetector = new CycleDetector({ thresholdConfig });
     const smurfingDetector = new SmurfingDetector({ thresholdConfig });
     const behavioralProfiler = new BehavioralProfiler();
+    const cryptoConversionDetector = new CryptoConversionDetector();
     const riskScorer = new RiskScorer({ thresholdConfig, emitter: eventBus });
 
     const orchestrator = new DetectionOrchestrator({
@@ -128,6 +130,7 @@ async function createServer() {
         cycleDetector,
         smurfingDetector,
         behavioralProfiler,
+        cryptoConversionDetector,
         riskScorer,
         emitter: eventBus,
         thresholdConfig,

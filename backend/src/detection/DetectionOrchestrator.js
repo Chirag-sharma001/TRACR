@@ -7,6 +7,7 @@ class DetectionOrchestrator {
         cycleDetector,
         smurfingDetector,
         behavioralProfiler,
+        cryptoConversionDetector = null,
         riskScorer = null,
         emitter = eventBus,
         accountModel = Account,
@@ -17,6 +18,7 @@ class DetectionOrchestrator {
         this.cycleDetector = cycleDetector;
         this.smurfingDetector = smurfingDetector;
         this.behavioralProfiler = behavioralProfiler;
+        this.cryptoConversionDetector = cryptoConversionDetector;
         this.riskScorer = riskScorer;
         this.emitter = emitter;
         this.accountModel = accountModel;
@@ -79,7 +81,7 @@ class DetectionOrchestrator {
         const smurfingTxCountThreshold = this.#getConfigNumber("smurfing_tx_count_threshold", 3);
         const smurfingBelowThresholdRatioMin = this.#getConfigNumber("smurfing_below_threshold_ratio_min", 0.7);
 
-        const [cycles, smurfingSignal, behavioralSignal] = await Promise.all([
+        const [cycles, smurfingSignal, behavioralSignal, cryptoSignal] = await Promise.all([
             Promise.resolve(
                 this.cycleDetector.detectCycles(
                     this.graphManager,
@@ -112,6 +114,9 @@ class DetectionOrchestrator {
                 },
                 account
             ),
+            Promise.resolve(
+                this.cryptoConversionDetector ? this.cryptoConversionDetector.evaluateCryptoConversion(this.graphManager, tx, { windowHours: rollingWindowHours }) : null
+            ),
         ]);
 
         const result = {
@@ -120,6 +125,7 @@ class DetectionOrchestrator {
             cycle_signals: cycles,
             smurfing_signal: smurfingSignal,
             behavioral_signal: behavioralSignal,
+            crypto_signal: cryptoSignal,
             ground_truth: tx.metadata?.ground_truth,
             analyzed_at: new Date().toISOString(),
         };
@@ -129,6 +135,7 @@ class DetectionOrchestrator {
             cycle_signal_count: cycles.length,
             smurfing: Boolean(smurfingSignal),
             behavioral: Boolean(behavioralSignal),
+            crypto_conversion: Boolean(cryptoSignal),
         });
 
         return result;
