@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const express = require("express");
 const http = require("http");
+const cors = require("cors");
 const mongoose = require("mongoose");
 const path = require("path");
 
@@ -57,8 +58,10 @@ async function createServer() {
     const app = express();
     const httpServer = http.createServer(app);
 
+    app.use(cors());
     app.use(express.json({ limit: "2mb" }));
     app.use(express.static(path.join(__dirname, "../../frontend-new/public")));
+    app.get("/", (_req, res) => res.redirect("/app.html"));
 
     const auditLogger = new AuditLogger();
     const sarQueue = new SARQueue();

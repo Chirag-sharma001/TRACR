@@ -18,6 +18,7 @@
     "ajv": "^8.18.0",
     "ajv-formats": "^3.0.1",
     "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
     "fast-check": "^4.6.0",
