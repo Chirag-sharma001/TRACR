@@ -431,22 +431,30 @@ export default function LiveGlobe() {
             </g>
           ))}
 
-          {/* Network Graph: DIRECTED EDGES */}
+          {/* Network Graph: DIRECTED EDGES (Animated discovery to static state) */}
           {Object.values(edges).map((edge) => {
               const fromNode = nodes[edge.from];
               const toNode = nodes[edge.to];
               if (!fromNode || !toNode) return null;
+              
+              // Calculate path for motion.path
+              const d = `M ${fromNode.coords[0]} ${fromNode.coords[1]} L ${toNode.coords[0]} ${toNode.coords[1]}`;
+
               return (
-                <Line
-                    key={edge.id}
-                    from={fromNode.coords}
-                    to={toNode.coords}
+                <g key={edge.id}>
+                  <motion.path
+                    d={d}
+                    fill="none"
                     stroke="#f43f5e"
                     strokeWidth={2}
                     strokeDasharray="4 2"
                     markerEnd="url(#arrow)"
-                    style={{ opacity: 0.6, filter: 'drop-shadow(0 0 4px #f43f5e)' }}
-                />
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 0.7 }}
+                    transition={{ duration: 1.5, ease: "easeInOut" }}
+                    style={{ filter: 'drop-shadow(0 0 4px #f43f5e)' }}
+                  />
+                </g>
               );
           })}
 

@@ -1,8 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { Activity, ShieldAlert, Network, ArrowLeft } from 'lucide-react'
+import { Activity, ShieldAlert, Network, ArrowLeft, FileDown, Download } from 'lucide-react'
 
 const GlobalHeatmap = dynamic(() => import('@/components/GlobalHeatmap'), { 
   ssr: false,
@@ -14,6 +15,43 @@ const GlobalHeatmap = dynamic(() => import('@/components/GlobalHeatmap'), {
 })
 
 export default function AnalysisPage() {
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleExportReport = async () => {
+    if (isExporting) return;
+    
+    setIsExporting(true)
+    try {
+      console.log('Initiating SAR Export...');
+      // We will dynamically import the generator to keep bundle size small
+      const { generateSARReport } = await import('@/utils/SARReportGenerator')
+      
+      const mockReportData = {
+        caseId: `SF-${Math.floor(Date.now() / 100000)}`,
+        status: 'CRITICAL',
+        detectedAt: new Date().toLocaleString(),
+        narrative: "Significant smurfing pattern detected involving 14 distinct wallets. The funds originate from a high-risk mixer and are being funneled into a centralized exchange through multiple intermediary hops. Agentic analysis suggests a calculated attempt to bypass automated threshold detection.",
+        threats: [
+          { type: 'Smurfing', severity: 'HIGH', count: 14 },
+          { type: 'Circular Flow', severity: 'MEDIUM', count: 3 }
+        ],
+        behavioralSignals: [
+          "Rapid burst transactions",
+          "Layering via ghost addresses",
+          "Convergent fund pooling"
+        ]
+      }
+
+      await generateSARReport(mockReportData)
+      console.log('SAR Export successful.');
+    } catch (error) {
+      console.error('Failed to generate SAR report:', error);
+      alert('Report generation failed. Please check the system console for details or ensure you have a stable internet connection.');
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-white p-4 sm:p-6 font-sans selection:bg-indigo-500/30 relative">
       
@@ -34,10 +72,10 @@ export default function AnalysisPage() {
           </Link>
           
           <div className="flex flex-col">
-            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-100 to-gray-500">
-              TRACR
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-100 to-gray-500 font-metropolis">
+              SATYA FLOW
             </h1>
-            <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-500 font-semibold mt-0.5">
+            <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-indigo-400 font-semibold mt-0.5">
               Command Center // Network Analysis
             </p>
           </div>
@@ -87,6 +125,28 @@ export default function AnalysisPage() {
                 <div className="text-xl sm:text-2xl font-light text-amber-400">42</div>
               </div>
             </div>
+
+            <button 
+              onClick={handleExportReport}
+              disabled={isExporting}
+              className={`mt-6 w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-xs uppercase tracking-widest transition-all shadow-lg active:scale-[0.98] ${
+                isExporting 
+                  ? 'bg-gray-600 cursor-not-allowed text-gray-400' 
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-400/30 shadow-indigo-500/10'
+              }`}
+            >
+              {isExporting ? (
+                <>
+                  <Activity size={14} className="animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <FileDown size={14} />
+                  Export SAR Report
+                </>
+              )}
+            </button>
           </div>
 
           <div className="p-5 rounded-2xl glass">
