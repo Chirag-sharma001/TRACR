@@ -1213,7 +1213,7 @@
       <div class="mt-8 bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
         <div class="p-6 border-b border-slate-50 flex justify-between items-center">
           <h3 class="text-lg font-extrabold tracking-tight text-on-surface">Recent Behavioral Deviations</h3>
-          <button class="text-sm font-bold text-primary flex items-center gap-1 hover:underline">Export Full Audit<span
+          <button onclick="window.handleGlobalSARExport('BEHAVIORAL')" class="text-sm font-bold text-primary flex items-center gap-1 hover:underline">Export Full Audit<span
               class="material-symbols-outlined text-sm">download</span></button>
         </div>
         <div class="overflow-x-auto">
@@ -1297,7 +1297,7 @@
             activities flagged by the Sentinel detection engine.</p>
         </div>
         <div class="flex gap-3">
-          <button class="bg-surface-container-highest text-primary font-semibold text-sm px-5 py-2.5 rounded-lg">Export
+          <button onclick="window.handleGlobalSARExport('CASES')" class="bg-surface-container-highest text-primary font-semibold text-sm px-5 py-2.5 rounded-lg">Export
             Ledger</button>
           <button
             onclick="openNewCase()"
@@ -1583,7 +1583,7 @@
           <p class="text-on-surface-variant font-medium">Monitoring filing cycles and regulatory submission health.</p>
         </div>
         <div class="flex gap-3">
-          <button
+          <button onclick="window.handleGlobalSARExport('REPORTS')"
             class="px-5 py-2.5 bg-surface-container-highest text-primary font-semibold text-sm rounded-lg flex items-center gap-2 hover:bg-slate-200 transition-colors"><span
               class="material-symbols-outlined text-sm">download</span>Export PDF</button>
           <button
@@ -2099,7 +2099,7 @@
           <p class="text-on-surface-variant text-sm mt-1 max-w-lg">Monitor cryptocurrency laundering patterns, darknet routing, and on-chain relationships connected to fiat off-ramps.</p>
         </div>
         <div class="flex gap-3">
-          <button class="bg-surface-container-highest text-primary font-semibold text-sm px-5 py-2.5 rounded-lg">Export Report</button>
+          <button onclick="window.handleGlobalSARExport('CRYPTO')" class="bg-surface-container-highest text-primary font-semibold text-sm px-5 py-2.5 rounded-lg">Export Report</button>
           <button class="bg-micro-gradient text-on-primary font-semibold text-sm px-5 py-2.5 rounded-lg shadow-sm hover:shadow-md transition-all">Submit SAR</button>
         </div>
       </header>
@@ -2682,6 +2682,10 @@
   <script src="/api-client.js"></script>
   <script src="/dashboard-engine.js"></script>
   <script src="/interactions.js"></script>
+  <!-- SAP SAR Export Engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <script src="/sar-handler.js"></script>
 </body>
 
 </html>
