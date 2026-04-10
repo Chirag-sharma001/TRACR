@@ -6,7 +6,7 @@ const COUNTRIES = ["US", "IN", "GB", "SG", "AE", "MX", "DE", "JP", "IR", "KP", "
 
 class TransactionSimulator {
     constructor({
-        ingestUrl = "http://localhost:3000/api/transactions/ingest",
+        ingestUrl = "http://localhost:5000/api/transactions/ingest",
         tps = 2,
         smurfingEnabled = true,
         circularEnabled = true,

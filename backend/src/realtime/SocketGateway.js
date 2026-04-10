@@ -1,5 +1,6 @@
 const { Server } = require("socket.io");
 const Alert = require("../models/Alert");
+const Transaction = require("../models/Transaction");
 const eventBus = require("../events/eventBus");
 
 class SocketGateway {
@@ -128,6 +129,20 @@ class SocketGateway {
       return;
     }
 
+    // Broadcast full transaction to ALL connected clients (for live feed + KPI updates)
+    this.io.emit("transaction:saved", {
+      transaction_id: tx.transaction_id,
+      sender_account_id: tx.sender_account_id,
+      receiver_account_id: tx.receiver_account_id,
+      amount_usd: tx.amount_usd,
+      currency: tx.currency,
+      geolocation: tx.geolocation,
+      transaction_type: tx.transaction_type,
+      timestamp: tx.timestamp,
+      pattern_tag: tx.pattern_tag || null,
+    });
+
+    // Also emit graph:update to room-specific subscribers
     const update = {
       from: tx.sender_account_id,
       to: tx.receiver_account_id,
@@ -167,11 +182,21 @@ class SocketGateway {
       { $sort: { "_id.hour": 1 } },
     ]);
 
+    // Add total volume + count for KPI cards
+    const [totalTxCount, volumeResult, avgScoreResult] = await Promise.all([
+      Transaction.countDocuments({}),
+      Transaction.aggregate([{ $group: { _id: null, total: { $sum: "$amount_usd" } } }]),
+      this.alertModel.aggregate([{ $group: { _id: null, avg: { $avg: "$risk_score" } } }]),
+    ]);
+
     this.io.emit("metrics:update", {
       tps,
       alertCounts,
       trend,
       sarQueueDepth: this.sarQueue?.getDepth ? this.sarQueue.getDepth() : 0,
+      total_transactions: totalTxCount,
+      total_volume: volumeResult.length > 0 ? volumeResult[0].total : 0,
+      avg_risk_score: avgScoreResult.length > 0 ? Math.round((avgScoreResult[0].avg || 0) * 10) / 10 : 0,
     });
   }
 

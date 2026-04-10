@@ -303,12 +303,26 @@
         title="Time">
         <span class="material-symbols-outlined">schedule</span>
       </button>
-      <button
-        class="p-2 rounded-lg text-slate-500 hover:bg-slate-200/50 transition-colors relative cursor-pointer active:opacity-80"
-        title="Notifications">
-        <span class="material-symbols-outlined">notifications</span>
-        <span class="badge-pulse absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
-      </button>
+      <div class="relative">
+        <button
+          onclick="window.toggleNotifications && window.toggleNotifications()"
+          class="p-2 rounded-lg text-slate-500 hover:bg-slate-200/50 transition-colors relative cursor-pointer active:opacity-80"
+          title="Notifications">
+          <span class="material-symbols-outlined">notifications</span>
+          <span id="notification-badge" class="badge-pulse absolute top-2 right-2 w-2 h-2 bg-error rounded-full hidden"></span>
+        </button>
+        
+        <!-- Notifications Dropdown -->
+        <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white border border-slate-100 rounded-xl shadow-xl z-50 hidden opacity-0 transition-opacity duration-200 transform origin-top overflow-hidden">
+          <div class="px-4 py-3 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <h3 class="text-sm font-bold text-slate-800">Alerts</h3>
+            <span class="text-[10px] uppercase tracking-wider font-bold text-primary cursor-pointer hover:underline" onclick="window.clearNotifications && window.clearNotifications()">Clear All</span>
+          </div>
+          <div id="notification-dropdown-list" class="max-h-[70vh] overflow-y-auto w-full hide-scrollbar flex flex-col p-2 space-y-1 bg-surface-container-low">
+             <div class="p-6 text-center text-xs text-on-surface-variant font-medium">No new alerts detected.</div>
+          </div>
+        </div>
+      </div>
       <div class="h-8 w-[1px] bg-outline-variant mx-2"></div>
       <div class="flex items-center gap-3 cursor-pointer">
         <div class="text-right">
@@ -430,71 +444,25 @@
                 onclick="setTrendTab(this)">Monthly</button>
             </div>
           </div>
-          <div class="relative h-[300px] w-full flex items-end justify-between gap-1">
-            <div class="flex-1 bg-primary/5 rounded-t-lg h-[40%] relative group">
-              <div
-                class="absolute bottom-0 left-0 w-full bg-primary/20 h-[80%] rounded-t-lg group-hover:bg-primary/40 transition-all">
-              </div>
-            </div>
-            <div class="flex-1 bg-primary/5 rounded-t-lg h-[60%] relative group">
-              <div
-                class="absolute bottom-0 left-0 w-full bg-primary/20 h-[70%] rounded-t-lg group-hover:bg-primary/40 transition-all">
-              </div>
-            </div>
-            <div class="flex-1 bg-primary/5 rounded-t-lg h-[50%] relative group">
-              <div
-                class="absolute bottom-0 left-0 w-full bg-primary/20 h-[90%] rounded-t-lg group-hover:bg-primary/40 transition-all">
-              </div>
-            </div>
-            <div class="flex-1 bg-primary/5 rounded-t-lg h-[80%] relative group">
-              <div
-                class="absolute bottom-0 left-0 w-full bg-primary/20 h-[60%] rounded-t-lg group-hover:bg-primary/40 transition-all">
-              </div>
-            </div>
-            <div class="flex-1 bg-primary/5 rounded-t-lg h-[95%] relative group">
-              <div
-                class="absolute bottom-0 left-0 w-full bg-primary/20 h-[85%] rounded-t-lg group-hover:bg-primary/40 transition-all">
-              </div>
-            </div>
-            <div class="flex-1 bg-primary/5 rounded-t-lg h-[70%] relative group">
-              <div
-                class="absolute bottom-0 left-0 w-full bg-primary/20 h-[40%] rounded-t-lg group-hover:bg-primary/40 transition-all">
-              </div>
-            </div>
-            <div class="flex-1 bg-primary/5 rounded-t-lg h-[55%] relative group">
-              <div
-                class="absolute bottom-0 left-0 w-full bg-primary/20 h-[75%] rounded-t-lg group-hover:bg-primary/40 transition-all">
-              </div>
-            </div>
-            <div class="flex-1 bg-primary/5 rounded-t-lg h-[45%] relative group">
-              <div
-                class="absolute bottom-0 left-0 w-full bg-primary/20 h-[30%] rounded-t-lg group-hover:bg-primary/40 transition-all">
-              </div>
-            </div>
-            <div class="flex-1 bg-primary/5 rounded-t-lg h-[65%] relative group">
-              <div
-                class="absolute bottom-0 left-0 w-full bg-primary/20 h-[50%] rounded-t-lg group-hover:bg-primary/40 transition-all">
-              </div>
-            </div>
-            <div class="flex-1 bg-primary/5 rounded-t-lg h-[85%] relative group">
-              <div
-                class="absolute bottom-0 left-0 w-full bg-primary/20 h-[95%] rounded-t-lg group-hover:bg-primary/40 transition-all">
-              </div>
-            </div>
-            <div class="absolute inset-0 pointer-events-none">
-              <svg class="w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
-                <path d="M 0 80 Q 15 20, 30 50 T 60 10 T 100 60" fill="none" stroke="#6b38d4" stroke-dasharray="2 2"
-                  stroke-width="0.5"></path>
-              </svg>
-            </div>
+          <div class="relative h-[300px] w-full">
+            <iframe
+               src="/chart-activity"
+               class="w-full h-full border-none outline-none"
+               allowtransparency="true">
+            </iframe>
           </div>
-          <div class="flex justify-between mt-4">
-            <span class="text-[10px] text-on-surface-variant font-medium">01 MAY</span>
-            <span class="text-[10px] text-on-surface-variant font-medium">08 MAY</span>
-            <span class="text-[10px] text-on-surface-variant font-medium">15 MAY</span>
-            <span class="text-[10px] text-on-surface-variant font-medium">22 MAY</span>
-            <span class="text-[10px] text-on-surface-variant font-medium">29 MAY</span>
+          <div class="flex items-center gap-6 mt-3">
+            <div class="flex items-center gap-2">
+              <span class="w-4 h-0.5 bg-emerald-500 inline-block rounded"></span>
+              <span class="text-[10px] text-on-surface-variant font-medium">Volume ($K)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-4 h-0.5 bg-red-500 inline-block rounded"></span>
+              <span class="text-[10px] text-on-surface-variant font-medium">Anomalies</span>
+            </div>
+            <span class="ml-auto text-[10px] text-on-surface-variant font-mono opacity-60">Live · 3s interval</span>
           </div>
+
         </div>
 
         <!-- Priority Alerts -->
@@ -704,7 +672,7 @@
 
   <!-- ─── LIVE MONITORING ───────────────────────────────────────────────── -->
   <template id="page-live">
-    <div class="p-8">
+    <div class="pt-24 px-8 pb-12 max-w-[1600px] mx-auto">
       <div class="flex justify-between items-end mb-8">
         <div>
           <h1 class="text-3xl font-extrabold tracking-tight text-on-surface mb-1">Live Monitoring</h1>
@@ -1008,22 +976,21 @@
 
   <!-- ─── BEHAVIORAL ANALYSIS ───────────────────────────────────────────── -->
   <template id="page-behavioral">
-    <div class="p-8">
+    <div class="pt-24 px-8 pb-12 max-w-[1600px] mx-auto">
       <div class="grid grid-cols-4 gap-6 mb-8">
         <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm">
           <p class="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest mb-1">Risk Divergence</p>
           <div class="flex items-end gap-2">
-            <h3 class="text-2xl font-extrabold tracking-tight text-primary">+42.8%</h3><span
+            <h3 id="behavioral-kpi-divergence" class="text-2xl font-extrabold tracking-tight text-primary">+42.8%</h3><span
               class="text-error flex items-center text-xs font-semibold pb-1"><span
-                class="material-symbols-outlined text-sm">arrow_upward</span>Abnormal</span>
+                class="material-symbols-outlined text-sm">arrow_upward</span><span id="behavioral-kpi-divergence-label">Abnormal</span></span>
           </div>
         </div>
         <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm">
-          <p class="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest mb-1">Behavioral Signature
-          </p>
+          <p class="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest mb-1">Behavioral Alerts</p>
           <div class="flex items-end gap-2">
-            <h3 class="text-2xl font-extrabold tracking-tight text-on-surface">Asymmetric</h3><span
-              class="text-tertiary-container text-xs font-semibold pb-1">Confidence: 94%</span>
+            <h3 id="behavioral-kpi-alerts" class="text-2xl font-extrabold tracking-tight text-on-surface">0</h3><span
+              class="text-tertiary-container text-xs font-semibold pb-1">This session</span>
           </div>
         </div>
         <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm">
@@ -1066,8 +1033,8 @@
               <svg class="absolute inset-0 w-full h-full drop-shadow-xl overflow-visible" viewBox="0 0 100 100">
                 <polygon fill="rgba(203,213,225,0.3)" points="50,10 85,35 75,80 25,80 15,35" stroke="#94a3b8"
                   stroke-width="0.5"></polygon>
-                <polygon fill="rgba(79,70,229,0.15)" points="50,5 95,45 80,95 10,75 5,40" stroke="#3525cd"
-                  stroke-linejoin="round" stroke-width="1.5"></polygon>
+                <polygon id="behavioral-radar-current" fill="rgba(79,70,229,0.15)" points="50,5 95,45 80,95 10,75 5,40" stroke="#3525cd"
+                  stroke-linejoin="round" stroke-width="1.5" style="transition: all 1s ease;"></polygon>
                 <circle cx="50" cy="5" fill="#3525cd" r="1.5"></circle>
                 <circle cx="95" cy="45" fill="#3525cd" r="1.5"></circle>
                 <circle cx="80" cy="95" fill="#3525cd" r="1.5"></circle>
@@ -1091,14 +1058,14 @@
               <h4 class="text-xs font-bold uppercase text-on-surface-variant mb-4">Anomaly Drivers</h4>
               <div class="space-y-3">
                 <div class="flex items-center justify-between"><span class="text-sm text-on-surface">Trans.
-                    Frequency</span><span class="text-sm font-bold text-error">+210%</span></div>
+                    Frequency</span><span id="behavioral-freq-pct" class="text-sm font-bold text-error">+210%</span></div>
                 <div class="w-full bg-surface-container rounded-full h-1">
-                  <div class="bg-error w-[85%] h-full rounded-full"></div>
+                  <div id="behavioral-freq-bar" class="bg-error w-[85%] h-full rounded-full transition-all duration-1000"></div>
                 </div>
                 <div class="flex items-center justify-between"><span class="text-sm text-on-surface">Avg. Value
-                    Shift</span><span class="text-sm font-bold text-primary">+88%</span></div>
+                    Shift</span><span id="behavioral-value-pct" class="text-sm font-bold text-primary">+88%</span></div>
                 <div class="w-full bg-surface-container rounded-full h-1">
-                  <div class="bg-primary w-[65%] h-full rounded-full"></div>
+                  <div id="behavioral-value-bar" class="bg-primary w-[65%] h-full rounded-full transition-all duration-1000"></div>
                 </div>
               </div>
             </div>
@@ -1203,7 +1170,7 @@
                   Action</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-50">
+            <tbody id="behavioral-deviations-body" class="divide-y divide-slate-50">
               <tr class="hover:bg-slate-50/50 transition-colors">
                 <td class="px-6 py-4 text-sm font-medium text-on-surface-variant">Oct 24, 2023 · 14:22:01</td>
                 <td class="px-6 py-4">

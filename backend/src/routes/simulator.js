@@ -8,7 +8,7 @@ function createSimulatorRoutes({ jwtMiddleware, auditLogger = null } = {}) {
     const router = express.Router();
 
     const sim = new TransactionSimulator({
-        ingestUrl: `http://localhost:${process.env.PORT || 3000}/api/transactions/ingest`,
+        ingestUrl: `http://localhost:${process.env.PORT || 5000}/api/transactions/ingest`,
         smurfingEnabled: false,
         circularEnabled: false,
     });
