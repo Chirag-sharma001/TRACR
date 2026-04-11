@@ -1,0 +1,170 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto+Mono:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Metropolis';
+  src: url('https://cdn.jsdelivr.net/gh/ChrisChm/metropolis-font/Metropolis-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Metropolis';
+  src: url('https://cdn.jsdelivr.net/gh/ChrisChm/metropolis-font/Metropolis-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+.font-metropolis {
+  font-family: 'Metropolis', sans-serif;
+}
+
+:root {
+  /* Apple/Stripe-inspired Deep Minimalist Dark Mode */
+  --bg-primary: #050505;
+  --bg-secondary: #0E0E11;
+  --bg-tertiary: #14151A;
+  
+  /* Antigravity Accents */
+  --accent-primary: #6366F1; /* Indigo */
+  --accent-cyan: #22D3EE;
+  --accent-safe: #34D399; /* Mint green */
+  --accent-alert: #FB7185; /* Coral red */
+  
+  /* Glass and Borders */
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-bg-hover: rgba(255, 255, 255, 0.06);
+  --glass-border-hover: rgba(255, 255, 255, 0.12);
+  
+  /* Glows - Diffused and Elegant */
+  --glow-indigo: 0 0 40px rgba(99, 102, 241, 0.15), 0 0 100px rgba(99, 102, 241, 0.05);
+  --glow-safe: 0 0 30px rgba(52, 211, 153, 0.15);
+  --glow-alert: 0 0 40px rgba(251, 113, 133, 0.2);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* Use system font smoothing for ultra-crisp text */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: #F1F1F4; /* Soft white */
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+}
+
+/* Minimalist Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: #27272A;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3F3F46;
+}
+
+/* Premium Glass Panel */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass:hover {
+  border-color: var(--glass-border-hover);
+  background: var(--glass-bg-hover);
+}
+
+/* Animations */
+@keyframes scan {
+  0% { transform: translateY(-100%); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateY(200%); opacity: 0; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-blink {
+  animation: blink 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Globe Loader */
+.globe-loader {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-top-color: var(--accent-cyan);
+  animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.font-mono {
+  font-family: 'Roboto Mono', monospace;
+}
+
+/* Diffused Mesh Background (Antigravity feel) */
+.mesh-bg {
+  background: 
+    radial-gradient(ellipse 60% 50% at 50% -20%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 80% 80%, rgba(34, 211, 238, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse 40% 40% at 20% 70%, rgba(99, 102, 241, 0.03) 0%, transparent 40%),
+    var(--bg-primary);
+}
+
+/* Subtle Grid overlay */
+.grid-overlay {
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+}
+
+/* GPU Optimization */
+canvas {
+  will-change: transform;
+  contain: strict;
+}
+
+.glass {
+  will-change: auto;
+  contain: layout style;
+}
+
+@keyframes flowLine {
+  to { stroke-dashoffset: -82; }
+}
