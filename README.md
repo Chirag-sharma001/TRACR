@@ -1,140 +1,116 @@
 # TRACR: Intelligent AML Framework
+## *Powered by SATYA FLOW — The Ethereal Ledger*
 
 [![Project Status: Active](https://img.shields.io/badge/Project%20Status-Active-brightgreen.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)]()
+[![Stack: Next.js 15](https://img.shields.io/badge/Stack-Next.js%2015-black.svg)]()
+[![AI: Gemini 1.5 Flash](https://img.shields.io/badge/AI-Gemini%201.5%20Flash-blue.svg)]()
 
-![TRACR Dashboard Background](https://lh3.googleusercontent.com/aida-public/AB6AXuASRvJfKXx54L6J6UnQj1GeZBbPOdVu24iUkL9LVf9mhOolUpXR1foBzRiFvAq0WgoeRYtrs3Jgb3FENoj1KRYKjG_mBAeGz6H3OZm9BfcipO9Wq_kiTPLGHbibqB5Mxk8d0CXb3JShHTA5WtrYBZA0WeQyOmikZQPSXAZXT3OIdCM7fv_vy2bf-uR2jWO3_QoMJomU9d8E38QE867jerPZ9GJQa6rjDQtNmTrEUyPFtFvb3B04HVCSYnoL7Kwf9N1mC8DEH3gN-H5O)
+![SATYA FLOW Hero](Docs/assets/hero-satya-flow.png)
 
 ## 📌 Overview
 
-**TRACR** (Intelligent Anti-Money Laundering Framework) is a next-generation, high-performance financial crime detection platform. Driven by real-time heuristics, graph-theoretic cycle detection, and Explainable AI (XAI), TRACR targets sophisticated money laundering typologies—such as **Smurfing (Structuring)** and **Circular Trading (Layering)**—which often evade traditional rule-based AML systems. 
+**TRACR** is a state-of-the-art, high-performance financial crime detection ecosystem. At its core lies **SATYA FLOW**, an ethereal investigation dashboard designed for modern compliance teams. TRACR moves beyond traditional rule-based AML by utilizing real-time heuristics, graph-theoretic cycle detection, and Explainable AI (XAI) to expose sophisticated money laundering typologies—such as **Smurfing**, **Circular Trading**, and **Crypto-Layering**.
 
-Nicknamed the "Sovereign Observer," TRACR utilizes a robust microservice architecture to process high-volume transaction telemetry and automatically draft **Suspicious Activity Reports (SARs)** using generative AI (Google's Gemini 1.5 Flash), significantly reducing investigator fatigue and false positives.
+Nicknamed the "Sovereign Observer," TRACR processes high-volume transaction telemetry with sub-500ms latency, transforming raw data into actionable intelligence and automated regulatory filings.
 
 ---
 
 ## 🏗️ System Architecture
 
-TRACR is built with a decoupled, high-performance architecture divided into three primary layers, designed to handle sub-500ms end-to-end latency from ingestion to alert generation.
+TRACR is built on a decoupled microservices architecture designed for extreme scale and visual fidelity.
 
-1. **Frontend (The Intelligence Layer)**
-   - **Legacy UI (`/frontend`)**: React + Vite + Tailwind CSS v4. A real-time SPA utilizing WebSockets for instant anomaly feeds.
-   - **Next-Gen Command Center (`/frontend-new`)**: Next.js 15, React 19, and Tailwind CSS v4. Features a dark-themed Investigation Command Center with WebGL-accelerated 3D components (using `react-three-fiber` and `react-force-graph`) mapped for multi-dimensional data visualization, interactive cases, and real-time feed capabilities.
+### 1. The Intelligence Layer (SATYA FLOW)
+The flagship Command Center built with **Next.js 15** and **React 19**. 
+- **Cyber-War Room**: WebGL-accelerated 3D network graphing using `react-three-fiber` for multi-dimensional threat visualization.
+- **Glassmorphic Design**: A premium, dark-mode first aesthetic optimized for deep focus and analyst ergonomics.
+- **Real-time Engine**: Leverages WebSockets (Socket.io) for millisecond-accurate anomaly feeds.
 
-2. **Backend (The Core Engine) (`/backend`)**
-   - Node.js & Express.js REST API.
-   - Embeds a `SocketGateway` for push-based real-time event distribution.
-   - **Detection Engine:** Graph-theoretic DFS cycle detection & rolling-window behavioral velocity analysis running in memory.
-   - **Scoring Engine:** Hybrid risk scoring system factoring in cycle length, time compression, FATF jurisdiction, and smurfing multipliers.
-   - **Explainable AI (XAI) Module:** Integrates with Gemini 1.5 Flash for generating plain-English SAR narratives.
+### 2. The Core Engine (Backend)
+High-concurrency processing built on **Node.js** and **Express.js**.
+- **Detection Pipeline**: Graph-based DFS algorithms for uncovering complex circular trade loops.
+- **Scoring System**: Multi-factor risk engine accounting for jurisdiction, velocity, and typology markers.
+- **Explainable AI (XAI)**: Native integration with **Gemini 1.5 Flash** to generate automated, audit-ready **SAR (Suspicious Activity Report)** narratives.
 
-3. **Data & Synthetic Ingestion**
-   - **Simulator:** A configurable Python-based ML heuristic synthetic stream generator (`seed_data.py`) modeling real-world transactional behaviors.
-   - **Persistence:** MongoDB for normalized transaction persistence, historical baselines, and append-only audit logging.
+### 3. Analytics & Forensics
+- **Crypto-Forensics**: Specialized module for tracking on-chain suspicious activity and cross-chain hops.
+- **Behavioral Profiling**: Rolling-window analysis that creates dynamic "normative" baselines for every entity.
+- **Threat Simulator**: A Python-based ML heuristic generator for stress-testing detection logic via synthetic streams.
 
 ---
 
 ## ✨ Key Features
 
-- **Real-Time Anomaly Feed:** Live inference mapping and alerting via WebSocket `metrics:update` packets.
-- **Topological Network Discovery:** WebGL-accelerated visual alerts exposing network-level threats, cycles, and layering typologies directly within the dashboard.
-- **Explainable AI (XAI):** Human-interpretable justifications and automated **SAR Drafting** via Gemini 1.5 Flash for rapid regulatory filing.
-- **Behavioral Profiling:** Rolling 90-day baseline computations accounting for transaction frequency, velocity spikes, and counterparty anomalies.
-- **Premium Fintech Aesthetic:** High-density, dark-mode-first layouts utilizing glassmorphism and tailored tonal layering optimized for compliance analysts and threat hunting.
+- 🌀 **Topological Discovery**: Visual alerts exposing structural threats and hidden cycles directly in the graph.
+- 🤖 **Agentic Reporting**: Automated drafting of SARs using AI to reduce investigator fatigue by up to 70%.
+- ⛓️ **Crypto Analysis**: Deep-dive analytics for blockchain-based financial crime detection.
+- 📍 **Geospatial Heatmaps**: Global risk density mapping using Leaflet and D3.js.
+- ⚡ **Live Inference**: Continuous monitoring with instant push-based alerts for high-risk events.
 
 ---
 
 ## 🚀 Getting Started
 
 ### 1. Prerequisites
-
 - **Node.js**: v20+
 - **Python**: v3.10+
-- **MongoDB**: Localport `27017` or Atlas Cloud URL
-- **API Keys**: Google Gemini API key mapped for XAI features.
+- **MongoDB**: Local port `27017` or Atlas Cloud URI
+- **API Keys**: Google Gemini API key for XAI features.
 
-### 2. Configuration & Secrets
-
-Clone the repository and set up the backend environment variables.
-
-Create an `.env` file in the `backend` directory (e.g., `cp backend/.env.example backend/.env`) and securely configure your credentials:
-
+### 2. Configuration
+Create a `.env` file in the `backend/` directory:
 ```env
-# MongoDB Connection String (Atlas or Local)
 MONGO_URI=mongodb+srv://tracr_user:tracrdbpassword@<YOUR_CLUSTER_ID>.mongodb.net/intelligent_aml
-
-# Authentication
-JWT_SECRET=replace_with_strong_secure_secret_key
-
-# AI Layer
-GEMINI_API_KEY=replace_with_gemini_api_key
+JWT_SECRET=your_secure_secret
+GEMINI_API_KEY=your_gemini_api_key
 ```
 
 ### 3. Installation
-
-**Install Backend Dependencies:**
+**Backend:**
 ```bash
-cd backend
-npm install
+cd backend && npm install
 ```
-
-**Install Next-Gen Frontend Dependencies:**
+**Frontend (SATYA FLOW):**
 ```bash
-cd frontend-new
-npm install
+cd frontend-new && npm install
 ```
-
-*(Note: To use the legacy Vite frontend, run `npm install` inside the `frontend` directory instead.)*
 
 ---
 
-## 💻 Running TRACR Locally
+## 💻 Local Execution
 
-Running the completely interconnected ecosystem requires spinning up the backend, frontend, and the synthetic transaction simulator concurrently.
+Run the interconnected ecosystem using three concurrent processes:
 
-### Step 1: Start the Backend Gateway
-Initializes the ingestion pipeline, detection engine, and Socket.IO WebSocket server on port `3000`.
+1. **Start the Backend:**
+   ```bash
+   cd backend && npm start
+   ```
 
-```bash
-cd backend
-npm start
-```
+2. **Start SATYA FLOW:**
+   ```bash
+   cd frontend-new && npm run dev
+   ```
 
-### Step 2: Start the Next-Gen Investigation Dashboard
-Bootstraps the Next.js 15 Intelligence Command Center. Eliminates CORS requirements with integrated API routings.
-
-```bash
-cd frontend-new
-npm run dev
-```
-Navigate to `http://localhost:3000` (or the port specified by Next.js) to access the Investigation Command Center. *(To run the legacy frontend, `cd frontend` and `npm run dev` mapping to `http://localhost:5173`)*
-
-### Step 3: Trigger Live Synthetic Threats (Simulation)
-To monitor the dashboard actively detecting anomalies and graph cycles, execute the Python synthetic transaction pipeline. This script simulates TPS streams with injected Smurfing & Circular Trading typologies.
-
-```bash
-cd backend
-# Execute the ML generator pipeline
-python seed_data.py
-```
+3. **Inject Synthetic Threats:**
+   ```bash
+   cd backend && python seed_data.py
+   ```
 
 ---
 
 ## 🛠️ Technology Stack
 
-**Frontend Next-Gen**
-- Next.js 15 / React 19
-- Tailwind CSS v4
-- React Three Fiber / WebGL (Graphing & 3D Maps)
-- Leaflet & D3 (Spatial Analysis)
+| Layer | Tools |
+| :--- | :--- |
+| **Frontend** | Next.js 15, React 19, Tailwind CSS v4, Three.js, D3.js, Leaflet |
+| **Backend** | Node.js, Express, Socket.io, MongoDB, JWT |
+| **AI/ML** | Google Gemini 1.5 Flash, Python (Heuristics), Graph-DFS |
+| **DevOps** | Jest, Python venv, NPM |
 
-**Backend Core**
-- Express.js (Node.js)
-- Socket.IO (Real-time Eventing)
-- MongoDB & Mongoose
-- JSON Web Tokens (HS256 RBAC Auth)
-- Jest (Testing)
+---
 
-**AI & Analytics**
-- Google Gemini 1.5 Flash (Automated SAR Generation)
-- Python Analytics / Heuristics
+## 🛡️ License
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+*Created with ❤️ by the TRACR Engineering Team*
